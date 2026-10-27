@@ -55,6 +55,12 @@ if not exist "%VEN%\lua\lua515.lib" (
   echo        Run tools\build\build_lua.bat first.
   exit /b 1
 )
+rem FLAG PC divergence: wasmtime, the WebAssembly mod runtime (src\pc\mods\ModWasm.cpp).
+if not exist "%VEN%\wasmtime\lib\wasmtime.dll.lib" (
+  echo ERROR: wasmtime C API missing -- "%VEN%\wasmtime\lib\wasmtime.dll.lib" not found.
+  echo        Run: python tools\build\fetch_wasmtime.py
+  exit /b 1
+)
 if not exist "%XA2%\include\xaudio2Redist.h" (
   echo ERROR: XAudio2 redist missing -- "%XA2%\include\xaudio2Redist.h" not found.
   echo        CgsAudioOutputPC.cpp includes it. Run: tools\build\fetch_xaudio2_redist.bat
@@ -345,6 +351,17 @@ echo "%SRC%\SDKs\Csis\CsisGlobalVariableHandle.cpp"
   echo "%SRC%\GameShared\GameClasses\System\Input\CgsInputModuleIO.cpp"
   echo "%SRC%\GameShared\GameClasses\System\Input\PC\CgsInputPadsPC.cpp"
   echo "%SRC%\pc\input\Gamepad.cpp"
+  rem FLAG PC divergence: the mod host (mods\<name>\): sandboxed WebAssembly mods on wasmtime,
+  rem  opt-in native DLL mods, the draw-list UI renderer and the game-state services.
+  echo "%SRC%\pc\mods\ModHost.cpp"
+  echo "%SRC%\pc\mods\ModNative.cpp"
+  echo "%SRC%\pc\mods\ModWasm.cpp"
+  echo "%SRC%\pc\mods\ModWasmImports.cpp"
+  echo "%SRC%\pc\mods\ModInput.cpp"
+  echo "%SRC%\pc\mods\ModUi.cpp"
+  echo "%SRC%\pc\mods\ModUiD3D9.cpp"
+  echo "%SRC%\pc\mods\ModServices.cpp"
+  echo "%SRC%\pc\mods\ModDebugVars.cpp"
   rem ---- crash-parity FX-RUMBLE3 2026-09-24 (G10-D4): the console input module replaces the
   rem  BrnGameModule.hpp ODR stub -- DoUpdate_InputPreWorld -> InputModule::PreWorldUpdate ->
   rem  ProcessRumbleRequests -> InputPads::UpdateRumble -> DeviceX360Pad::SetRumble (the rumble chain).
@@ -5551,7 +5568,7 @@ echo WARNING: no Python interpreter found -- using the legacy serial full-rebuil
 goto legacy_compile
 
 :driver_compile
-%PY_CMD% "%~dp0compile_exe.py" --base "%BASERSP%" --rsp "%RSP%" --out "%OUT%" -- /SUBSYSTEM:WINDOWS /MAP /OPT:REF /LIBPATH:"%FFM%\bin" "%OUT%\obj\burnout.res" d3d9.lib user32.lib gdi32.lib gdiplus.lib kernel32.lib ntdll.lib winmm.lib shell32.lib ole32.lib advapi32.lib ws2_32.lib avformat.lib avcodec.lib avutil.lib swscale.lib swresample.lib "%VEN%\lua\lua515.lib" "%SDL%\lib\x64\SDL3.lib"
+%PY_CMD% "%~dp0compile_exe.py" --base "%BASERSP%" --rsp "%RSP%" --out "%OUT%" -- /SUBSYSTEM:WINDOWS /MAP /OPT:REF /LIBPATH:"%FFM%\bin" "%OUT%\obj\burnout.res" d3d9.lib user32.lib gdi32.lib gdiplus.lib kernel32.lib ntdll.lib winmm.lib shell32.lib ole32.lib advapi32.lib ws2_32.lib avformat.lib avcodec.lib avutil.lib swscale.lib swresample.lib "%VEN%\lua\lua515.lib" "%SDL%\lib\x64\SDL3.lib" "%VEN%\wasmtime\lib\wasmtime.dll.lib"
 set "BUILD_ERR=%ERRORLEVEL%"
 goto post_build
 
@@ -5581,7 +5598,7 @@ if errorlevel 1 ( echo ERROR: Sound Playback CgsEnvironment.cpp precompile faile
 cl @"%BASERSP%" /c "%SRC%\GameShared\GameClasses\Sound\Playback\CgsVoice.cpp" /Fo"%OUT%\\obj\\playback_voice.obj"
 if errorlevel 1 ( echo ERROR: Sound Playback CgsVoice.cpp precompile failed. & exit /b 1 )
 
-cl /nologo @"%RSP%" "%OUT%\\obj\\renderengine_device.obj" "%OUT%\\obj\\playback_environment.obj" "%OUT%\\obj\\playback_voice.obj" /link /SUBSYSTEM:WINDOWS /MAP /OPT:REF /LIBPATH:"%FFM%\bin" "%OUT%\\obj\\burnout.res" d3d9.lib user32.lib gdi32.lib gdiplus.lib kernel32.lib ntdll.lib winmm.lib shell32.lib ole32.lib advapi32.lib ws2_32.lib avformat.lib avcodec.lib avutil.lib swscale.lib swresample.lib "%VEN%\lua\lua515.lib" "%SDL%\lib\x64\SDL3.lib"
+cl /nologo @"%RSP%" "%OUT%\\obj\\renderengine_device.obj" "%OUT%\\obj\\playback_environment.obj" "%OUT%\\obj\\playback_voice.obj" /link /SUBSYSTEM:WINDOWS /MAP /OPT:REF /LIBPATH:"%FFM%\bin" "%OUT%\\obj\\burnout.res" d3d9.lib user32.lib gdi32.lib gdiplus.lib kernel32.lib ntdll.lib winmm.lib shell32.lib ole32.lib advapi32.lib ws2_32.lib avformat.lib avcodec.lib avutil.lib swscale.lib swresample.lib "%VEN%\lua\lua515.lib" "%SDL%\lib\x64\SDL3.lib" "%VEN%\wasmtime\lib\wasmtime.dll.lib"
 
 set "BUILD_ERR=%ERRORLEVEL%"
 
@@ -5605,6 +5622,12 @@ rem the audio engine the game runs on (without it it falls back to the in-box xa
 rem and on a pre-1803 Windows to nothing at all -- the game then runs muted).
 if "%BUILD_ERR%"=="0" copy /Y "%XA2%\bin\x64\xaudio2_9redist.dll" "%OUT%\" >nul
 
+rem Stage wasmtime.dll (the WebAssembly mod runtime the exe imports) next to the exe.
+if "%BUILD_ERR%"=="0" (
+  copy /Y "%VEN%\wasmtime\lib\wasmtime.dll" "%OUT%\" >nul
+  if errorlevel 1 (endlocal & exit /b 1)
+  copy /Y "%VEN%\wasmtime\LICENSE" "%OUT%\wasmtime-LICENSE.txt" >nul
+)
 if "%BUILD_ERR%"=="0" (
   copy /Y "%SDL%\lib\x64\SDL3.dll" "%OUT%\" >nul
   if errorlevel 1 (endlocal & exit /b 1)

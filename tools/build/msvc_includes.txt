@@ -26,3 +26,6 @@ b5-decomp\vendor\xaudio2redist\include
 
 # SDL3 gamepad backend (tools/build/fetch_sdl3.py).
 b5-decomp\vendor\sdl3\include
+
+# wasmtime C API, the WebAssembly mod runtime (tools/build/fetch_wasmtime.py).
+b5-decomp\vendor\wasmtime\include
