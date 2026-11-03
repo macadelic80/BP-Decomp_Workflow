@@ -18,10 +18,11 @@
 # and the jump would count 0.5 s later, so BRN_CRASH_PLAYER=2905 crashes it on the landing,
 # before it completes. FreshProfile keeps the jump undone (firstTime=1).
 #
-# ⚠ KNOWN SEPARATE DEFECT: if the crash lands while the "SuperJump" name banner is still WAITING
-# in the shared message queue, CrashedHudState starts it in crashHudMessages_mc, the style label
-# is missing there and MovieClipInstance::ApplyKeyFrame faults. Such a run fails the exception
-# check before it reaches this case's checks; rerun it.
+# A crash while the "SuperJump" name banner is still transitioning in (crash frame ~2880, run
+# timing permitting) also covers the companion fix: CrashedHudState re-starts that banner in
+# crashHudMessages_mc, which has no "SuperJump" frame, and the label miss used to fault in
+# MovieClipInstance::ApplyKeyFrame. InGameMessagesComponent::StartMessage now retires it, so
+# the "no exceptions" check holds there too.
 #
 # Run it:
 #   powershell -ExecutionPolicy Bypass -File tools\tests\run_case.ps1 -Case superjump_failed
