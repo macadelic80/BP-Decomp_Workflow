@@ -4,25 +4,25 @@
 "CLIPPED_NAME": 32,
 "DTOR_NONTRIVIAL": 6,
 "GENERATED_DTOR": 150,
-"ICF_NAME_ONLY": 24,
-"ICF_OVERRIDE_MISSING": 47,
-"MISSING": 188,
+"ICF_NAME_ONLY": 22,
+"ICF_OVERRIDE_MISSING": 45,
+"MISSING": 190,
 "MISSING_CLASS_ABSENT": 154,
 "TRUNCATED_MATCH": 13,
-"UNNAMED_OVERRIDE_MISSING": 8
+"UNNAMED_OVERRIDE_MISSING": 9
 },
 "control_pass": true,
 "counts": {
 "GENERATED_DTOR": 399,
-"ICF_OVERRIDE_PRESENT": 22,
+"ICF_OVERRIDE_PRESENT": 21,
 "PRESENT": 3060,
 "PRESENT_TEMPLATE": 42,
 "PRESENT_TEXT_ONLY": 4,
 "free_function_in_table": 100,
-"icf_slot_unknown_method": 173,
-"icf_slot_wrong_way_parent": 10,
-"new_virtual_foreign_name": 125,
-"present_but_unmounted": 146,
+"icf_slot_unknown_method": 181,
+"icf_slot_wrong_way_parent": 8,
+"new_virtual_foreign_name": 72,
+"present_but_unmounted": 150,
 "pure_or_noexport": 224
 },
 "rows": [
@@ -331,7 +331,7 @@
 "online": false,
 "slots": [
 {
-"owner": "BrnSound::Logic::Traffic::TrafficControl",
+"owner": "CgsSound::Logic::State",
 "owner_why": "slot names + hierarchy",
 "slot": 1,
 "stored": 2,
@@ -382,7 +382,7 @@
 "online": false,
 "slots": [
 {
-"owner": "BrnSound::Vehicles::AIVehicleStateManager",
+"owner": "BrnSound::Vehicles::PlayerVehicleStateManager",
 "owner_why": "slot names + hierarchy",
 "slot": 1,
 "stored": 1,
@@ -1111,7 +1111,7 @@
 "online": false,
 "slots": [
 {
-"owner": "AptInteger",
+"owner": "AptBoolean",
 "owner_why": "ctor/dtor store",
 "slot": 14,
 "stored": 24,
@@ -2265,11 +2265,11 @@
 "online": false,
 "slots": [
 {
-"owner": "XGRAPHICS::HosCoord",
-"owner_why": "ctor/dtor store",
-"slot": 9,
-"stored": 1,
-"table": "0x821B1884"
+"owner": "XGRAPHICS::BaseAddr",
+"owner_why": "slot names + hierarchy",
+"slot": 0,
+"stored": 0,
+"table": "0x821B18A8"
 }
 ],
 "subsystem": "XGRAPHICS",
@@ -2739,9 +2739,9 @@
 {
 "owner": "Attrib::Attrib_RefSpec_TypeHandler",
 "owner_why": "slot names + hierarchy",
-"slot": 5,
-"stored": 1,
-"table": "0x82000CD8"
+"slot": 0,
+"stored": 0,
+"table": "0x82000CEC"
 }
 ],
 "subsystem": "Attrib",
@@ -3077,11 +3077,11 @@
 "online": false,
 "slots": [
 {
-"owner": "XGRAPHICS::IRExport",
-"owner_why": "ctor/dtor store",
-"slot": 26,
-"stored": 1,
-"table": "0x821B2270"
+"owner": "XGRAPHICS::IRLoadConst",
+"owner_why": "slot names + hierarchy",
+"slot": 0,
+"stored": 0,
+"table": "0x821B22D8"
 }
 ],
 "subsystem": "XGRAPHICS",
@@ -3461,7 +3461,7 @@
 "online": false,
 "slots": [
 {
-"owner": "CgsFileSystem::DeviceMemFileSystem",
+"owner": "rw::core::filesys::DeviceDriver",
 "owner_why": "ctor/dtor store",
 "slot": 0,
 "stored": 5,
@@ -3693,11 +3693,11 @@
 "online": false,
 "slots": [
 {
-"owner": "rw::audio::core::Snd9Service",
+"owner": "rw::audio::core::BandPassFir64",
 "owner_why": "slot names + hierarchy",
-"slot": 7,
-"stored": 1,
-"table": "0x8217F384"
+"slot": 0,
+"stored": 0,
+"table": "0x8217F3A0"
 }
 ],
 "subsystem": "rw",
@@ -4009,7 +4009,7 @@
 "online": false,
 "slots": [
 {
-"owner": "rw::audio::core::LowShelfIir2",
+"owner": "rw::audio::core::LowPassIir2",
 "owner_why": "slot names + hierarchy",
 "slot": 3,
 "stored": 1,
@@ -4037,9 +4037,9 @@
 {
 "owner": "rw::audio::core::LowShelfIir2",
 "owner_why": "slot names + hierarchy",
-"slot": 7,
-"stored": 1,
-"table": "0x8217F464"
+"slot": 0,
+"stored": 0,
+"table": "0x8217F480"
 }
 ],
 "subsystem": "rw",
@@ -4113,9 +4113,9 @@
 {
 "owner": "rw::audio::core::Pan2D1",
 "owner_why": "slot names + hierarchy",
-"slot": 7,
-"stored": 1,
-"table": "0x8217F4A4"
+"slot": 0,
+"stored": 0,
+"table": "0x8217F4C0"
 }
 ],
 "subsystem": "rw",
@@ -4139,7 +4139,7 @@
 "online": false,
 "slots": [
 {
-"owner": "rw::audio::core::Pan2D1",
+"owner": "rw::audio::core::Pan2D",
 "owner_why": "slot names + hierarchy",
 "slot": 3,
 "stored": 1,
@@ -4191,7 +4191,7 @@
 "online": false,
 "slots": [
 {
-"owner": "rw::audio::core::XasEnc",
+"owner": "rw::audio::core::Pcm16BigEnc",
 "owner_why": "slot names + hierarchy",
 "slot": 5,
 "stored": 1,
@@ -4482,9 +4482,9 @@
 {
 "owner": "rw::audio::core::XasEnc",
 "owner_why": "slot names + hierarchy",
-"slot": 11,
-"stored": 1,
-"table": "0x8217F624"
+"slot": 0,
+"stored": 0,
+"table": "0x8217F650"
 }
 ],
 "subsystem": "rw",
@@ -4504,11 +4504,11 @@
 "online": false,
 "slots": [
 {
-"owner": "rw::core::arena::DefaultRuntimeUnfixRefixAtoms",
-"owner_why": "ctor/dtor store",
-"slot": 3,
-"stored": 2,
-"table": "0x8217FFE8"
+"owner": "rw::core::arena::DefaultRuntimeAtomFixup",
+"owner_why": "slot names + hierarchy",
+"slot": 0,
+"stored": 0,
+"table": "0x8217FFF4"
 }
 ],
 "subsystem": "rw",
@@ -4529,10 +4529,10 @@
 "slots": [
 {
 "owner": "rw::core::arena::DefaultRuntimeUnfixRefixAtoms",
-"owner_why": "ctor/dtor store",
-"slot": 5,
-"stored": 2,
-"table": "0x8217FFE8"
+"owner_why": "slot names + hierarchy",
+"slot": 0,
+"stored": 0,
+"table": "0x8217FFFC"
 }
 ],
 "subsystem": "rw",
@@ -5081,30 +5081,6 @@
 "why": "no table holding this body belongs to XAUDIO::CSubmixVoice or a class derived from it (owners: XAUDIO::CRoutedVoice)"
 },
 {
-"addr": "0x826E8AB0",
-"bucket": "game",
-"cited": [],
-"cls": "ICF_NAME_ONLY",
-"confidence": "medium",
-"debug": false,
-"file": "GameSource/Unity/../Sound/Collision/BrnCollisionStateManager.cpp",
-"name": "BrnSound::Logic::Collision::CollisionStateManager::ExitGamePlay",
-"ninstr": 27,
-"nslots": 1,
-"online": false,
-"slots": [
-{
-"owner": "CgsSound::Logic::StateManager",
-"owner_why": "slot names + hierarchy",
-"slot": 11,
-"stored": 1,
-"table": "0x820B844C"
-}
-],
-"subsystem": "Sound",
-"why": "no table holding this body belongs to BrnSound::Logic::Collision::CollisionStateManager or a class derived from it (owners: CgsSound::Logic::StateManager)"
-},
-{
 "addr": "0x82C30B68",
 "bucket": "console",
 "cited": [],
@@ -5127,34 +5103,6 @@
 ],
 "subsystem": "XAUDIO",
 "why": "no table holding this body belongs to XAUDIO::CMasteringVoice or a class derived from it (owners: XAUDIO::CVoice)"
-},
-{
-"addr": "0x82C2AEE8",
-"bucket": "console",
-"cited": [
-"SDKs/XGraphics/XGraphicsIRLoadConst.cpp:42: // @ 0x82C2AEE8 -- IRLoadConst::Kill is NOT reconstructed here (BLOCKED).",
-"SDKs/XGraphics/XGraphicsIRLoadConst.h:14: //     XGRAPHICS::IRLoadConst::Kill         @ 0x82C2AEE8 (BLOCKED -- see .cpp)",
-"SDKs/XGraphics/XGraphicsIRLoadConst.h:46: // @ 0x82C2AEE8 -- unlink the node, first releasing it from the compiler's"
-],
-"cls": "ICF_NAME_ONLY",
-"confidence": "medium",
-"debug": false,
-"file": null,
-"name": "XGRAPHICS::IRLoadConst::Kill",
-"ninstr": 23,
-"nslots": 1,
-"online": false,
-"slots": [
-{
-"owner": "XGRAPHICS::IRExport",
-"owner_why": "ctor/dtor store",
-"slot": 50,
-"stored": 1,
-"table": "0x821B2270"
-}
-],
-"subsystem": "XGRAPHICS",
-"why": "no table holding this body belongs to XGRAPHICS::IRLoadConst or a class derived from it (owners: XGRAPHICS::IRExport)"
 },
 {
 "addr": "0x82C30DB0",
@@ -5619,42 +5567,6 @@
 "why": "no table holding this body belongs to rw::audio::core::SampleCapture or a class derived from it (owners: AptScriptFunctionByteCodeBlock, rw::audio::core::AiffWriter, rw::audio::core::Snd9Service, rw::audio::core::SndPlayer1, rw::audio::core::VuMeter)"
 },
 {
-"addr": "0x826C4850",
-"bucket": "game",
-"cited": [
-"GameShared/GameClasses/Sound/Logic/CgsState.cpp:373: // X360 @0x826C4850 LABEL_10 -> LABEL_18: ONE store pair when the effects have",
-"GameSource/Sound/Passby/BrnPassbyState.cpp:135: //   State::UpdateParams(dt)                     ; bl 0x826C4850"
-],
-"class_in_tree": true,
-"class_mounted": true,
-"class_name": "BrnSound::Logic::Traffic::TrafficControl",
-"cls": "ICF_OVERRIDE_MISSING",
-"confidence": "medium",
-"debug": false,
-"dwarf_sig": null,
-"fallback": "CgsSound::Logic::EffectBase::SetupLoadData",
-"file": "GameShared/GameClasses/Sound/Logic/CgsState.cpp",
-"folded_as": "CgsSound::Logic::State::UpdateParams",
-"method": "SetupLoadData",
-"name": "BrnSound::Logic::Traffic::TrafficControl::SetupLoadData",
-"ninstr": 200,
-"nslots": 1,
-"online": false,
-"parent_table": "0x820AEA38",
-"parent_why": "hierarchy",
-"slots": [
-{
-"owner": "BrnSound::Logic::Traffic::TrafficControl",
-"owner_why": "slot names + hierarchy",
-"slot": 4,
-"stored": 2,
-"table": "0x820B188C"
-}
-],
-"subsystem": "GameClasses",
-"why": "slot 4 differs from parent 0x820AEA38 (hierarchy), which names `SetupLoadData`; body is folded as `CgsSound::Logic::State::UpdateParams`"
-},
-{
 "addr": "0x82C2F728",
 "bucket": "console",
 "cited": [],
@@ -5793,42 +5705,6 @@
 ],
 "subsystem": "AptCIHNone",
 "why": "slot 1 differs from parent 0x821457E8 (hierarchy), which names `Release`; body is folded as `STUB`"
-},
-{
-"addr": "0x826CB270",
-"bucket": "game",
-"cited": [
-"GameShared/GameClasses/Sound/Logic/CgsState.h:107: // derived TrafficState::Attach (X360 `bl ...State::Attach` @0x826CB270) and",
-"GameSource/Sound/Module/LogicModule/BrnEmitterState.cpp:124: // idiom as the committed sibling TrafficState::Attach @0x826CB270). CGS_ASSERT folds"
-],
-"class_in_tree": true,
-"class_mounted": true,
-"class_name": "BrnSound::Logic::Traffic::TrafficControl",
-"cls": "ICF_OVERRIDE_MISSING",
-"confidence": "medium",
-"debug": false,
-"dwarf_sig": null,
-"fallback": "CgsSound::Logic::EffectBase::Prepare",
-"file": "GameSource/Unity/../Sound/Vehicles/Traffic/BrnTrafficState.cpp",
-"folded_as": "BrnSound::Logic::Traffic::TrafficState::Attach",
-"method": "Prepare",
-"name": "BrnSound::Logic::Traffic::TrafficControl::Prepare",
-"ninstr": 27,
-"nslots": 1,
-"online": false,
-"parent_table": "0x820AEA38",
-"parent_why": "hierarchy",
-"slots": [
-{
-"owner": "BrnSound::Logic::Traffic::TrafficControl",
-"owner_why": "slot names + hierarchy",
-"slot": 3,
-"stored": 2,
-"table": "0x820B188C"
-}
-],
-"subsystem": "Sound",
-"why": "slot 3 differs from parent 0x820AEA38 (hierarchy), which names `Prepare`; body is folded as `BrnSound::Logic::Traffic::TrafficState::Attach`"
 },
 {
 "addr": "0x82C28458",
@@ -6004,43 +5880,6 @@
 ],
 "subsystem": "BrnWorld",
 "why": "slot 14 differs from parent 0x820CE500 (hierarchy), which names `CreateInputDataStructure`; body is folded as `BrnWorld::PVS`"
-},
-{
-"addr": "0x826916D8",
-"bucket": "game",
-"cited": [
-"GameShared/GameClasses/Sound/Logic/CgsState.cpp:6: //   State::IsAttachedToThis                                 @ 0x826916D8",
-"GameShared/GameClasses/Sound/Logic/CgsState.cpp:108: // 0x826916D8. The X360 computes (mpvAttachment - apv == 0) as a boolean: true when",
-"GameShared/GameClasses/Sound/Logic/CgsState.h:18: //   CgsSound::Logic::State::IsAttachedToThis                @ 0x826916D8"
-],
-"class_in_tree": true,
-"class_mounted": true,
-"class_name": "BrnSound::Logic::Traffic::TrafficControl",
-"cls": "ICF_OVERRIDE_MISSING",
-"confidence": "medium",
-"debug": false,
-"dwarf_sig": null,
-"fallback": "BrnSound::Logic::BrnEffectControl::Detach",
-"file": "GameShared/GameClasses/Sound/Logic/CgsState.h",
-"folded_as": "CgsSound::Logic::State::IsAttachedToThis",
-"method": "Detach",
-"name": "BrnSound::Logic::Traffic::TrafficControl::Detach",
-"ninstr": 6,
-"nslots": 1,
-"online": false,
-"parent_table": "0x820AEA38",
-"parent_why": "hierarchy",
-"slots": [
-{
-"owner": "BrnSound::Logic::Traffic::TrafficControl",
-"owner_why": "slot names + hierarchy",
-"slot": 8,
-"stored": 2,
-"table": "0x820B188C"
-}
-],
-"subsystem": "GameClasses",
-"why": "slot 8 differs from parent 0x820AEA38 (hierarchy), which names `Detach`; body is folded as `CgsSound::Logic::State::IsAttachedToThis`"
 },
 {
 "addr": "0x822A6620",
@@ -7026,6 +6865,43 @@
 ],
 "subsystem": "GameClasses",
 "why": "slot 2 differs from parent 0x821AF190 (hierarchy), which names `OperationOutputs`; body is folded as `CgsSound::Playback::Content::DoOnPostLoad`"
+},
+{
+"addr": "0x827E2F38",
+"bucket": "console",
+"cited": [
+"GameSource/Director/MomentController/Moments/BrnMomentHardStop.cpp:548: //   slot 7 GetInstanceType  0x827E2F38  `li r3, 0 ; blr` -- E_MOMENT_HARD_STOP",
+"GameSource/GameState/FlybyManager/BrnGameStateFlybyManager.cpp:99: // ARTIST vtable 0x820CE774's second slot is ICF-folded to 0x827E2F38:",
+"GameSource/GameState/ModeManager/BrnModeManager_Accessors.cpp:674: //   OfflineFlybyManager vtable 0x820CE774: slot 1 = 0x827E2F38 `li r3, 0 ; blr`            -> 0."
+],
+"class_in_tree": true,
+"class_mounted": false,
+"class_name": "XGRAPHICS::IRLoadConst",
+"cls": "ICF_OVERRIDE_MISSING",
+"confidence": "medium",
+"debug": false,
+"dwarf_sig": null,
+"fallback": "XGRAPHICS::IRInst::OperationInputs",
+"file": "GameSource/World/DebugComponents/BrnPVSDebugComponent.h",
+"folded_as": "BrnWorld::PVSDebugComponent::IsSimple",
+"method": "OperationInputs",
+"name": "XGRAPHICS::IRLoadConst::OperationInputs",
+"ninstr": 2,
+"nslots": 1,
+"online": false,
+"parent_table": "0x821AF190",
+"parent_why": "hierarchy",
+"slots": [
+{
+"owner": "XGRAPHICS::IRLoadConst",
+"owner_why": "slot names + hierarchy",
+"slot": 1,
+"stored": 0,
+"table": "0x821B22D8"
+}
+],
+"subsystem": "World",
+"why": "slot 1 differs from parent 0x821AF190 (hierarchy), which names `OperationInputs`; body is folded as `BrnWorld::PVSDebugComponent::IsSimple`"
 },
 {
 "addr": "0x827E2F38",
@@ -10421,6 +10297,38 @@
 "why": "table stored by code; not in DWARF"
 },
 {
+"addr": "0x826E8AB0",
+"bucket": "game",
+"candidates": [],
+"cited": [],
+"class_in_tree": true,
+"class_mounted": true,
+"class_name": "BrnSound::Logic::Collision::CollisionStateManager",
+"cls": "MISSING",
+"confidence": "high",
+"debug": false,
+"declared": [],
+"dwarf_sig": "virtual void ExitGamePlay();",
+"fallback": null,
+"file": "GameSource/Unity/../Sound/Collision/BrnCollisionStateManager.cpp",
+"method": "ExitGamePlay",
+"name": "BrnSound::Logic::Collision::CollisionStateManager::ExitGamePlay",
+"ninstr": 27,
+"nslots": 1,
+"online": false,
+"slots": [
+{
+"owner": "BrnSound::Logic::Collision::CollisionStateManager",
+"owner_why": "slot names + hierarchy",
+"slot": 11,
+"stored": 1,
+"table": "0x820B844C"
+}
+],
+"subsystem": "Sound",
+"why": "table stored by code; DWARF: virtual"
+},
+{
 "addr": "0x82835C60",
 "bucket": "game",
 "candidates": [],
@@ -10747,6 +10655,44 @@
 ],
 "subsystem": "rw",
 "why": "table stored by code; not in DWARF; address cited in the tree: may be renamed or absorbed, read the citation"
+},
+{
+"addr": "0x82C2AEE8",
+"bucket": "console",
+"candidates": [],
+"cited": [
+"SDKs/XGraphics/XGraphicsIRLoadConst.cpp:42: // @ 0x82C2AEE8 -- IRLoadConst::Kill is NOT reconstructed here (BLOCKED).",
+"SDKs/XGraphics/XGraphicsIRLoadConst.h:14: //     XGRAPHICS::IRLoadConst::Kill         @ 0x82C2AEE8 (BLOCKED -- see .cpp)",
+"SDKs/XGraphics/XGraphicsIRLoadConst.h:46: // @ 0x82C2AEE8 -- unlink the node, first releasing it from the compiler's"
+],
+"class_in_tree": true,
+"class_mounted": false,
+"class_name": "XGRAPHICS::IRLoadConst",
+"cls": "MISSING",
+"confidence": "low",
+"debug": false,
+"declared": [
+"SDKs/XGraphics/XGraphicsIRLoadConst.h:52"
+],
+"dwarf_sig": null,
+"fallback": null,
+"file": null,
+"method": "Kill",
+"name": "XGRAPHICS::IRLoadConst::Kill",
+"ninstr": 23,
+"nslots": 1,
+"online": false,
+"slots": [
+{
+"owner": "XGRAPHICS::IRLoadConst",
+"owner_why": "slot names + hierarchy",
+"slot": 24,
+"stored": 0,
+"table": "0x821B22D8"
+}
+],
+"subsystem": "XGRAPHICS",
+"why": "table has NO store evidence; not in DWARF; address cited in the tree: may be renamed or absorbed, read the citation"
 },
 {
 "addr": "0x82BA4178",
@@ -11720,18 +11666,18 @@
 "table": "0x821AF190"
 },
 {
-"owner": "XGRAPHICS::IRExport",
-"owner_why": "ctor/dtor store",
-"slot": 47,
-"stored": 1,
-"table": "0x821B2270"
+"owner": "XGRAPHICS::IRLoadConst",
+"owner_why": "slot names + hierarchy",
+"slot": 21,
+"stored": 0,
+"table": "0x821B22D8"
 },
 {
-"owner": "XGRAPHICS::IRExport",
-"owner_why": "ctor/dtor store",
-"slot": 48,
-"stored": 1,
-"table": "0x821B2270"
+"owner": "XGRAPHICS::IRLoadConst",
+"owner_why": "slot names + hierarchy",
+"slot": 22,
+"stored": 0,
+"table": "0x821B22D8"
 },
 {
 "owner": "XGRAPHICS::IRLoadTemp",
@@ -11805,7 +11751,7 @@
 "online": false,
 "slots": [
 {
-"owner": "BrnSound::Logic::Collision::Collision3DControl",
+"owner": "BrnSound::Logic::Brn3DUserSpaceEffectControl",
 "owner_why": "ctor/dtor store",
 "slot": 12,
 "stored": 3,
@@ -13043,7 +12989,7 @@
 "online": false,
 "slots": [
 {
-"owner": "CgsFileSystem::DeviceMemFileSystem",
+"owner": "rw::core::filesys::DeviceDriver",
 "owner_why": "ctor/dtor store",
 "slot": 11,
 "stored": 5,
@@ -19747,6 +19693,39 @@
 "why": "slot 11 differs from parent 0x820CE500 (hierarchy), which names `DestroyOutputDataStructure`; body is folded as `sub_827E41A8`"
 },
 {
+"addr": "0x82AD4DD8",
+"bucket": "vendor",
+"cited": [],
+"class_in_tree": true,
+"class_mounted": true,
+"class_name": "AptBoolean",
+"cls": "UNNAMED_OVERRIDE_MISSING",
+"confidence": "low",
+"debug": false,
+"dwarf_sig": null,
+"fallback": "AptInteger::DeleteThis",
+"file": null,
+"folded_as": "sub_82AD4DD8",
+"method": "DeleteThis",
+"name": "AptBoolean::DeleteThis",
+"ninstr": 8,
+"nslots": 1,
+"online": false,
+"parent_table": "0x821456BC",
+"parent_why": "similarity",
+"slots": [
+{
+"owner": "AptBoolean",
+"owner_why": "ctor/dtor store",
+"slot": 8,
+"stored": 24,
+"table": "0x82145594"
+}
+],
+"subsystem": "AptBoolean",
+"why": "slot 8 differs from parent 0x821456BC (similarity), which names `DeleteThis`; body is folded as `sub_82AD4DD8`"
+},
+{
 "addr": "0x826D5510",
 "bucket": "game",
 "cited": [],
@@ -19850,11 +19829,11 @@
 "files": 6760,
 "n_bodies": 4393,
 "n_slots": 10593,
-"n_tables": 1277,
-"n_tables_owned": 1205,
-"n_tables_parent_hier": 240,
-"n_tables_parent_sim": 110,
+"n_tables": 1292,
+"n_tables_owned": 1220,
+"n_tables_parent_hier": 243,
+"n_tables_parent_sim": 111,
 "n_tables_stored": 1148,
-"n_tables_unlabelled": 41
+"n_tables_unlabelled": 56
 }
 }

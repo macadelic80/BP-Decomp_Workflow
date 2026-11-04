@@ -650,6 +650,20 @@ def is_code_ptr(v, g):
     return v in g or (CODE[0] <= v < CODE[1] and v % 4 == 0)
 
 
+def split_on_second_dtor(slots, g):
+    pieces, cur, seen = [], [], False
+    for v in slots:
+        # `destructor'` also catches IDA's clipped spelling, "destructor'`adjustor{".
+        is_dtor = v in g and "destructor'" in g[v]["n"]
+        if is_dtor and seen:
+            pieces.append(cur)
+            cur, seen = [], False
+        seen = seen or is_dtor
+        cur.append(v)
+    pieces.append(cur)
+    return pieces
+
+
 def build_tables(img, g):
     labels, stores = set(), defaultdict(list)
     for a, f in g.items():
@@ -672,9 +686,15 @@ def build_tables(img, g):
             ea += 4
         if not slots or not all(s in g or is_code_ptr(s, g) for s in slots):
             continue
-        t = Table(lab, slots, True)
-        t.stores = stores.get(lab, [])
-        tables[lab] = t
+        # A vtable holds one destructor, so a second one starts another table the code never
+        # materialises (a secondary vptr, usually). Left merged, TrafficState's table reads as
+        # TrafficControl's and its overrides as folds of the wrong methods.
+        start = lab
+        for piece in split_on_second_dtor(slots, g):
+            t = Table(start, piece, start == lab)
+            t.stores = stores.get(start, [])
+            tables[start] = t
+            start += 4 * len(piece)
         covered.update(range(lab, ea, 4))
     # Runs nobody materialises: an abstract base whose ctor was inlined away. No store evidence,
     # so everything derived from them is low confidence.
@@ -729,6 +749,14 @@ def assign_owners(tables, g, hy):
             return 0
         return 1 if g[s]["i"] <= 4 else 3
 
+    own_named = defaultdict(int)    # class -> bodies named for it, across all tables
+    for t in tables.values():
+        for s in t.slots:
+            if s in g:
+                n = Name(g[s]["n"])
+                if n.named and n.cls and not n.dtor and not n.clipped_template:
+                    own_named[hy.resolve(n.cls)] += 1
+
     for t in tables.values():
         named, weighted = Counter(), Counter()
         for s in t.slots:
@@ -751,11 +779,13 @@ def assign_owners(tables, g, hy):
         best = max(cands, key=score)
         # A derived class whose table holds only inherited bodies has no slot of its own: its ctor
         # is the only thing that can name it. Prefer it when it descends from the best slot class.
+        # ...unless that class visibly has a table of its own and this one names nothing of it:
+        # then the store is a base-subobject store (DeviceMemFileSystem storing DeviceDriver's).
         for c in ctors:
-            if hy.is_ancestor(best, c):
+            if hy.is_ancestor(best, c) and not (named.get(c, 0) == 0 and own_named.get(hy.resolve(c))):
                 best = c
         t.owner = best
-        t.owner_why = "ctor/dtor store" if best in ctors else "slot names + hierarchy"
+        t.owner_why = "ctor/dtor store" if ctors.get(best) else "slot names + hierarchy"
 
 
 def assign_parents(tables, g, hy):

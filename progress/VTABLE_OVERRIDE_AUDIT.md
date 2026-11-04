@@ -5,26 +5,26 @@ b5-decomp rev `3ae8053b5`. Control: **PASS**.
 
 A virtual the console overrides and we do not **compiles and links in silence**: the slot falls back on the base. Being virtual, it has no direct caller either, so `silent_link_sweep.py` can only file it in its class C. This audit reads the console's tables instead of its call graph.
 
-1277 tables, 10593 slots, 4393 distinct bodies. 1205 tables have an owner, 1148 are stored into an object by code. Parent table known from the hierarchy for 240, by similarity for 110.
+1292 tables, 10593 slots, 4393 distinct bodies. 1220 tables have an owner, 1148 are stored into an object by code. Parent table known from the hierarchy for 243, by similarity for 111.
 
 ## Counts
 
 | class | rows | game | console | vendor | high | medium | low | meaning |
 |---|---:|---:|---:|---:|---:|---:|---:|---|
-| MISSING | 188 | 87 | 85 | 16 | 98 | 52 | 38 | The console overrides it, the class exists in our tree, the method has no body. The slot silently falls back on the base. |
+| MISSING | 190 | 88 | 86 | 16 | 99 | 52 | 39 | The console overrides it, the class exists in our tree, the method has no body. The slot silently falls back on the base. |
 | MISSING_CLASS_ABSENT | 154 | 3 | 143 | 8 | 56 | 21 | 77 | The console overrides it but the whole class is absent from our tree. A larger gap of a different shape: no fallback, no object. |
-| ICF_OVERRIDE_MISSING | 47 | 15 | 30 | 2 | 1 | 36 | 10 | Slot differs from the parent's, carries a foreign name because the body was folded, and our class has no body for the method the parent names there. Real difference, but a small shared body by nature. |
-| UNNAMED_OVERRIDE_MISSING | 8 | 8 | 0 | 0 | 0 | 8 | 0 | Same, for a `sub_` body IDA could not name. |
+| ICF_OVERRIDE_MISSING | 45 | 12 | 31 | 2 | 1 | 34 | 10 | Slot differs from the parent's, carries a foreign name because the body was folded, and our class has no body for the method the parent names there. Real difference, but a small shared body by nature. |
+| UNNAMED_OVERRIDE_MISSING | 9 | 8 | 0 | 1 | 0 | 8 | 1 | Same, for a `sub_` body IDA could not name. |
 | TRUNCATED_MATCH | 13 | 3 | 10 | 0 | 0 | 13 | 0 | The console's name is clipped and a method of the class extends it. Probably present; candidates listed for a human to confirm. |
 | AMBIGUOUS_NAMESPACE | 0 | 0 | 0 | 0 | 0 | 0 | 0 | A definition of `Class::method` exists under ANOTHER namespace. A name collision may be hiding a miss, or the namespace may be spelled differently. |
 | CLIPPED_NAME | 32 | 32 | 0 | 0 | 0 | 32 | 0 | IDA clipped the name inside its qualifier (`BrnSound::Logic::Collisio`), so neither class nor method can be read from it. Unresolved, not a miss. |
 | TEMPLATE_UNRESOLVED | 0 | 0 | 0 | 0 | 0 | 0 | 0 | An instantiation whose template head IDA dropped; the class cannot be recovered from the name. |
-| ICF_NAME_ONLY | 24 | 2 | 20 | 2 | 0 | 24 | 0 | This body's name belongs to a class unrelated to every table holding it. The name is an accident of folding: not a miss of that class. |
+| ICF_NAME_ONLY | 22 | 1 | 19 | 2 | 0 | 22 | 0 | This body's name belongs to a class unrelated to every table holding it. The name is an accident of folding: not a miss of that class. |
 | ICF_SAME_AS_BASE | 0 | 0 | 0 | 0 | 0 | 0 | 0 | Named for this class, but the parent's slot holds the SAME address: identical bodies, so inheriting the base changes nothing. |
 | DTOR_NONTRIVIAL | 6 | 0 | 0 | 6 | 0 | 0 | 6 | Generated-looking destructor slot with a large body and no destructor of ours. Implicit member destruction may cover it: read before acting. |
 | GENERATED_DTOR | 399 | 13 | 63 | 74 | 150 | 0 | 0 | Deleting destructor: compiler output, nothing to write. |
 
-Bodies with a definition, not listed: **3106** (of which 4 found only by the raw-text second opinion). Folded overrides whose method we do define: 22. Foreign-name slots whose method cannot be named from the chain: 173.
+Bodies with a definition, not listed: **3106** (of which 4 found only by the raw-text second opinion). Folded overrides whose method we do define: 21. Foreign-name slots whose method cannot be named from the chain: 181.
 
 **Confidence.** `high`: the table is stored by code and at least two of: DWARF declares the method virtual on this class, the table's owner is exactly this class, a ctor/dtor of the class stores it. `medium`: part of that, or the tree cites the address (it may be renamed or absorbed elsewhere). `low`: no store evidence, or the name may be clipped. Confidence says how sure the row is that the console has this override; it does not say the row matters.
 
@@ -38,12 +38,12 @@ Game code, online and debug excluded unless noted, hand-checked. Order: a class 
 
 Not selected yet.
 
-## Game code (116 rows)
+## Game code (114 rows)
 
 | subsystem | rows | insns |
 |---|---:|---:|
-| GameClasses | 30 | 1580 |
 | GameState | 8 | 1395 |
+| GameClasses | 28 | 1374 |
 | Sound | 45 | 377 |
 | Game | 1 | 206 |
 | Resource | 2 | 183 |
@@ -62,11 +62,23 @@ Not selected yet.
 | BrnGameState | 1 | 6 |
 | BrnNetwork | 1 | 2 |
 
-### GameClasses (30)
+### GameState (8)
 
 | method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
 |---|---|---:|---|---|---|---|
-| `BrnSound::Logic::Traffic::TrafficControl::SetupLoadData` | `0x826C4850` | 200 | medium | yes / yes | `CgsSound::Logic::EffectBase::SetupLoadData` | `0x820B188C` / 4 |
+| `BrnGameState::OnlineRaceMode::Start` | `0x82338EB8` | 358 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D07F0` / 5 |
+| `BrnGameState::OnlineBurningHomeRunMode::Start` | `0x82339968` | 322 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D0960` / 5 |
+| `BrnGameState::OnlineRoadRageMode::Start` | `0x823394A0` | 305 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D0860` / 5 |
+| `BrnGameState::FaceOffMode::Start` | `0x82330440` | 139 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D0500` / 5 |
+| `BrnGameState::GameStateModule::Release` | `0x823756A8` | 128 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::Release` | `0x820D10B8` / 17 |
+| `BrnGameState::OnlineBurningHomeRunMode::PreWorldUpdate` | `0x8234CFD0` | 109 | medium | yes / yes | `BrnGameState::GameMode::PreWorldUpdate` | `0x820D0960` / 2 |
+| `BrnGameState::FaceOffMode::FillInGameModeSpecificResults` | `0x82315CC0` | 32 | medium | yes / yes | `BrnGameState::GameMode::FillInGameModeSpecificResults` | `0x820D0500` / 15 |
+| `BrnGameState::FaceOffMode::PreWorldUpdate` | `0x82330670` | 2 | medium | yes / yes | `BrnGameState::GameMode::PreWorldUpdate` | `0x820D0500` / 2 |
+
+### GameClasses (28)
+
+| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
+|---|---|---:|---|---|---|---|
 | `CgsFileSystem::RemapDevice::Open` | `0x828DE6B0` | 155 | high | yes / yes | `CgsFileSystem::Device::Open` | `0x820CEF0C` / 1 |
 | `CgsFileSystem::DeviceMemFileSystem::Open` | `0x828DD500` | 151 | medium | yes / yes | `rw::core::filesys::DeviceDriver::Open` | `0x820F7BB8` / 3 |
 | `BrnGui::ProgressBarRenderer::RenderComponent` | `0x824632C8` | 149 | medium | yes / no | `CgsGui::CustomRenderComponentInterface::RenderComponent` | `0x820CEAD0` / 13 |
@@ -90,25 +102,11 @@ Not selected yet.
 | `CgsFileSystem::RemapDevice::Init` | `0x828DE658` | 21 | low | yes / yes |  | `0x820CEF0C` / 0 |
 | `CgsSceneManager::SceneManagerModule::Update` | `0x827E1F28` | 15 | low | yes / yes | `CgsModule::ModuleSingleBuffered::Update` | `0x820D0250` / 4 |
 | `CgsFileSystem::DeviceMemFileSystem::Close` | `0x828DD760` | 8 | high | yes / yes | `rw::core::filesys::DeviceDriver::Close` | `0x820F7BB8` / 4 |
-| `BrnSound::Logic::Traffic::TrafficControl::Detach` | `0x826916D8` | 6 | medium | yes / yes | `BrnSound::Logic::BrnEffectControl::Detach` | `0x820B188C` / 8 |
 | `CgsSound::Logic::StateManager::GetTypeName` | `0x8268D7A8` | 4 | medium | yes / yes |  | `0x820B66E4` / 2 |
 | `BrnSound::Vehicles::Environment::SpeedStreamControl::GetTypeName` | `0x8284CB38` | 2 | medium | yes / yes | `CgsSound::Logic::EffectControl::GetTypeName` | `0x820B208C` / 12 |
 | `BrnWorld::PVSModule::Destruct` | `0x822A93A0` | 2 | high | yes / yes | `CgsModule::ModuleSingleBuffered::Destruct` | `0x820D1190` / 3 |
 | `CgsDev::DebugUI::CustomWindow::Render` | `0x8284CB38` | 2 | medium | yes / yes | `CgsDev::DebugUI::Window::Render` | `0x820DC4C8` / 1 |
 | `CgsFileSystem::DeviceMemFileSystem::GetSize` | `0x828DD9C8` | 2 | high | yes / yes | `rw::core::filesys::DeviceDriver::GetSize` | `0x820F7BB8` / 8 |
-
-### GameState (8)
-
-| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
-|---|---|---:|---|---|---|---|
-| `BrnGameState::OnlineRaceMode::Start` | `0x82338EB8` | 358 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D07F0` / 5 |
-| `BrnGameState::OnlineBurningHomeRunMode::Start` | `0x82339968` | 322 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D0960` / 5 |
-| `BrnGameState::OnlineRoadRageMode::Start` | `0x823394A0` | 305 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D0860` / 5 |
-| `BrnGameState::FaceOffMode::Start` | `0x82330440` | 139 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D0500` / 5 |
-| `BrnGameState::GameStateModule::Release` | `0x823756A8` | 128 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::Release` | `0x820D10B8` / 17 |
-| `BrnGameState::OnlineBurningHomeRunMode::PreWorldUpdate` | `0x8234CFD0` | 109 | medium | yes / yes | `BrnGameState::GameMode::PreWorldUpdate` | `0x820D0960` / 2 |
-| `BrnGameState::FaceOffMode::FillInGameModeSpecificResults` | `0x82315CC0` | 32 | medium | yes / yes | `BrnGameState::GameMode::FillInGameModeSpecificResults` | `0x820D0500` / 15 |
-| `BrnGameState::FaceOffMode::PreWorldUpdate` | `0x82330670` | 2 | medium | yes / yes | `BrnGameState::GameMode::PreWorldUpdate` | `0x820D0500` / 2 |
 
 ### Sound (45)
 
@@ -117,7 +115,7 @@ Not selected yet.
 | `BrnSound::Module::RootSoundModule::Release` | `0x82682898` | 68 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::Release` | `0x820D1100` / 2 |
 | `BrnSound::Vehicles::Engines::LoopModelEffect::AttachController` | `0x82685118` | 46 | high | yes / no | `CgsSound::Logic::EffectBase::AttachController` | `0x820B12FC` / 2 |
 | `BrnSound::Module::SoundLogicModule::Release` | `0x826C97B0` | 43 | high | yes / yes |  | `0x820D0EA0` / 2 |
-| `BrnSound::Logic::Traffic::TrafficControl::Prepare` | `0x826CB270` | 27 | medium | yes / yes | `CgsSound::Logic::EffectBase::Prepare` | `0x820B188C` / 3 |
+| `BrnSound::Logic::Collision::CollisionStateManager::ExitGamePlay` | `0x826E8AB0` | 27 | high | yes / yes |  | `0x820B844C` / 11 |
 | `BrnSound::Module::RootSoundModule::Destruct` | `0x826829C8` | 22 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::Destruct` | `0x820D1100` / 3 |
 | `BrnSound::Module::SoundLogicModule::Destruct` | `0x82697850` | 19 | high | yes / yes |  | `0x820D0EA0` / 3 |
 | `BrnSound::Logic::MusicEffect::Detach` | `0x826F6FA0` | 12 | medium | yes / yes | `BrnSound::Logic::BrnEffectObject::Detach` | `0x820B3754` / 8 |
@@ -271,7 +269,7 @@ Not selected yet.
 | `BrnNetwork::EventScoreUploadData::GetDataSize` | `0x82584D38` | 2 | low | no / no |  | `0x8207F2F8` / 3 |
 
 
-## Console-only code (268 rows)
+## Console-only code (270 rows)
 
 XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path. A miss here is usually a platform decision rather than a defect: read it as a list of decisions to confirm. A subset of `rw::` sits here because its name matches, not because it was reviewed.
 
@@ -279,7 +277,7 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 |---|---:|---:|
 | XAUDIO | 128 | 5192 |
 | CgsFileSystem | 8 | 1443 |
-| XGRAPHICS | 21 | 1237 |
+| XGRAPHICS | 22 | 1260 |
 | D3D | 11 | 1132 |
 | RealmcIface | 21 | 1026 |
 | rw | 14 | 579 |
@@ -288,7 +286,7 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | XCAM | 28 | 289 |
 | Snd | 3 | 127 |
 | GameClasses | 12 | 24 |
-| World | 7 | 14 |
+| World | 8 | 16 |
 
 ### XAUDIO (128)
 
@@ -350,7 +348,7 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | `CgsFileSystem::PhysicalX360Device::Seek` | `0x828DEB98` | 37 | low | no / no |  | `0x820CEEE0` / 5 |
 | `CgsFileSystem::PhysicalX360Device::Init` | `0x828DE998` | 21 | low | no / no |  | `0x820CEEE0` / 0 |
 
-### XGRAPHICS (21)
+### XGRAPHICS (22)
 
 | method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
 |---|---|---:|---|---|---|---|
@@ -362,6 +360,7 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | `XGRAPHICS::IRInst::Kill` | `0x82C2AE48` | 40 | medium | yes / no |  | `0x821AF190` / 24 |
 | `XGRAPHICS::Interpolator::GetReplacingTempIfNecessary` | `0x82C28EF0` | 36 | high | yes / yes |  | `0x821B17AC` / 8 |
 | `XGRAPHICS::ExportValue::GetReplacingTempIfNecessary` | `0x82C28E78` | 30 | high | no / no |  | `0x821B1788` / 8 |
+| `XGRAPHICS::IRLoadConst::Kill` | `0x82C2AEE8` | 23 | low | yes / no |  | `0x821B22D8` / 24 |
 | `XGRAPHICS::IRKill::Assemble` | `0x82C28458` | 20 | low | no / no | `XGRAPHICS::IRAlu::Assemble` | `0x821B2858` / 3 |
 | `XGRAPHICS::IRKill2::Assemble` | `0x82C28458` | 20 | high | no / no |  | `0x821B2858` / 3 |
 | `XGRAPHICS::IRExport::SetMask` | `0x82C28708` | 18 | medium | yes / no | `XGRAPHICS::IRInst::SetMask` | `0x821B2270` / 22 |
@@ -520,7 +519,7 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | `XGRAPHICS::IRProjection::OperationOutputs` | `0x82C296C8` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationOutputs` | `0x821B2440` / 2 |
 | `XGRAPHICS::IRTextureFetch::OperationInputs` | `0x82C296C8` | 2 | low | no / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2780` / 1 |
 
-### World (7)
+### World (8)
 
 | method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
 |---|---|---:|---|---|---|---|
@@ -529,11 +528,12 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | `XGRAPHICS::IRAllocMem::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2690` / 1 |
 | `XGRAPHICS::IRAllocPos::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2618` / 1 |
 | `XGRAPHICS::IRCmp1S::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2940` / 1 |
+| `XGRAPHICS::IRLoadConst::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B22D8` / 1 |
 | `XGRAPHICS::IRLoadInterp::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B23C8` / 1 |
 | `XGRAPHICS::IRLoadTemp::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2350` / 1 |
 
 
-## Vendor / SDK (32 rows)
+## Vendor / SDK (33 rows)
 
 `rw::`, `EA::`, `Apt*`, anything under `SDKs/`. Largest 40; the rest are in the JSON. Vendor code is often supplied whole by an original source or a host implementation (`tools/work/check_vendor_lib.py`), which this audit does not model.
 
@@ -568,6 +568,7 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | `rw::audio::core::PacketPlayer::ReleaseEvent` | `0x82B98368` | 22 | low | no / no |  | `0x8217F324` / 0 |
 | `CgsResource::AptDataHeaderType::GetSerialisedResourceDescriptor` | `0x82502C30` | 18 | medium | yes / yes | `CgsResource::Type::GetSerialisedResourceDescriptor` | `0x820A0EA0` / 1 |
 | `rw::audio::core::TimeStretch::ReleaseEvent` | `0x82B9C548` | 18 | medium | no / no |  | `0x8217F564` / 0 |
+| `AptBoolean::DeleteThis` | `0x82AD4DD8` | 8 | low | yes / yes | `AptInteger::DeleteThis` | `0x82145594` / 8 |
 | `EA::Jobs::LocalBackend::LocalBackend::GetJobThreadSleepTimeoutMS` | `0x82BCBE60` | 2 | low | yes / yes |  | `0x82182500` / 21 |
 | `rw::audio::core::SndPlayer1::GetPpuTicksEvent` | `0x82BDD2D0` | 2 | low | yes / no |  | `0x8217F334` / 6 |
 | `rw::audio::core::PacketPlayer::GetPpuTicksEvent` | `0x82B982B8` | 2 | low | no / no |  | `0x8217F324` / 2 |
@@ -577,7 +578,7 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 1. **A body is not a behaviour.** A row without a definition may have been inlined by hand into a caller; a row with one may be wrong. This only asks whether `Class::method` exists.
 2. **Overloads collapse.** One defined overload hides a missing one. A definition whose signature differs from the base's virtual hides the base instead of overriding it, and is counted as present.
 3. **Table boundaries.** A table starts at a materialised address. An unmaterialised table directly after a labelled one reads as extra slots of the first, usually with foreign names, so it lands in the ICF classes rather than MISSING. It errs towards under-reporting.
-4. **New virtuals with folded bodies.** A slot past the end of the parent's table whose body is folded has no method name to look up (125 such slots).
+4. **New virtuals with folded bodies.** A slot past the end of the parent's table whose body is folded has no method name to look up (72 such slots).
 5. **DWARF is the PS3 build.** The hierarchy and the `virtual` flags come from DecFIGS, a near-ancestor. Where ARTIST moved, the owner of a table can be wrong: the table address and slot are given so the claim can be read directly.
 6. **`class in tree` matches the last name component** and is not proof of the same class.
 7. **Mounted is not executed.** Nothing here shows the mode or object is ever reached.
