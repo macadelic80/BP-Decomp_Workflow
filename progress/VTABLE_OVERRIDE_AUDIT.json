@@ -1,11 +1,11 @@
 {
-"b5_rev": "3ae8053b5",
+"b5_rev": "d6570d76f",
 "by_class": {
 "CLIPPED_NAME": 32,
 "DTOR_NONTRIVIAL": 6,
 "GENERATED_DTOR": 150,
 "ICF_NAME_ONLY": 22,
-"ICF_OVERRIDE_MISSING": 38,
+"ICF_OVERRIDE_MISSING": 36,
 "ICF_TRIVIAL_OVERRIDE": 136,
 "MISSING": 190,
 "MISSING_CLASS_ABSENT": 154,
@@ -15,11 +15,11 @@
 "control_pass": true,
 "counts": {
 "GENERATED_DTOR": 399,
-"ICF_OVERRIDE_PRESENT": 21,
+"ICF_OVERRIDE_PRESENT": 22,
 "PRESENT": 3060,
 "PRESENT_TEMPLATE": 42,
 "PRESENT_TEXT_ONLY": 4,
-"dwarf_pass_rows": 126,
+"dwarf_pass_rows": 125,
 "free_function_in_table": 100,
 "icf_slot_unknown_method": 181,
 "icf_slot_wrong_way_parent": 8,
@@ -6191,45 +6191,6 @@
 "why": "DWARF declares it virtual on this class; sibling table 0x820A13D0 names `FixUp` at slot 4; here the slot holds `CgsResource::AttribSysSchemaResourceType::FixUp`"
 },
 {
-"addr": "0x822D5350",
-"bucket": "game",
-"cited": [
-"GameSource/World/EntityModules/RaceCarEntityModule/Boost/BrnBoostBurnout2.cpp:331: //   OnEndCrashPlay         @0x822D5350   (vtable slot 14)",
-"GameSource/World/EntityModules/RaceCarEntityModule/Boost/BrnBoostBurnout2.cpp:436: // OnEndCrashPlay -- vtable slot 14. @0x822D5350",
-"GameSource/World/EntityModules/RaceCarEntityModule/Boost/BrnBoostBurnout2.cpp:438: //   0x822D5350  lis  r11, flt_820147E8@ha"
-],
-"class_in_tree": true,
-"class_mounted": true,
-"class_name": "BrnWorld::BoostBurnout5",
-"cls": "ICF_OVERRIDE_MISSING",
-"confidence": "low",
-"debug": false,
-"dwarf_sig": "virtual void OnEndCrashPlay();",
-"fallback": "BrnWorld::BoostStrategy::OnEndCrashPlay",
-"file": "GameSource/Unity/../World/EntityModules/RaceCarEntityModule/Boost/BrnBoostBurnout2.cpp",
-"folded_as": "BrnWorld::BoostBurnout2::OnEndCrashPlay",
-"forwards_to_base": false,
-"method": "OnEndCrashPlay",
-"name": "BrnWorld::BoostBurnout5::OnEndCrashPlay",
-"ninstr": 10,
-"nslots": 1,
-"online": false,
-"parent_table": "0x820CEC30",
-"parent_why": "dwarf+sibling",
-"slots": [
-{
-"owner": "BrnWorld::BoostBurnout5",
-"owner_why": "slot names + hierarchy",
-"slot": 14,
-"stored": 0,
-"table": "0x820CEDC8"
-}
-],
-"subsystem": "World",
-"verdict": "true",
-"why": "DWARF declares it virtual on this class; sibling table 0x820CEC30 names `OnEndCrashPlay` at slot 14; here the slot holds `BrnWorld::BoostBurnout2::OnEndCrashPlay`"
-},
-{
 "addr": "0x821FB3F8",
 "bucket": "game",
 "cited": [
@@ -6340,45 +6301,6 @@
 ],
 "subsystem": "BrnSound",
 "why": "DWARF declares it virtual on this class; sibling table 0x820AF308 names `GetController` at slot 1; here the slot holds `BrnSound::Logic::BrnEffectObject::GetResourceRegistr`"
-},
-{
-"addr": "0x822A6620",
-"bucket": "game",
-"cited": [
-"GameSource/World/EntityModules/RaceCarEntityModule/Boost/BrnBoostBurnout3.cpp:457: //   0x822A6620  BoostBurnout3::OnPropHit            (vtable slot 16)",
-"GameSource/World/EntityModules/RaceCarEntityModule/Boost/BrnBoostBurnout3.cpp:500: // X360 0x822A6620 -- vtable slot 16. A bare tail-call, no stack frame:",
-"GameSource/World/EntityModules/RaceCarEntityModule/Boost/BrnBoostBurnout3.h:102: // -- base slot 16 -- @0x822A6620."
-],
-"class_in_tree": true,
-"class_mounted": true,
-"class_name": "BrnWorld::BoostBurnout5",
-"cls": "ICF_OVERRIDE_MISSING",
-"confidence": "low",
-"debug": false,
-"dwarf_sig": "virtual void OnPropHit();",
-"fallback": "BrnWorld::BoostStrategy::OnPropHit",
-"file": "GameSource/Unity/../World/EntityModules/RaceCarEntityModule/Boost/BrnBoostBurnout3.cpp",
-"folded_as": "BrnWorld::BoostBurnout3::OnPropHit",
-"forwards_to_base": false,
-"method": "OnPropHit",
-"name": "BrnWorld::BoostBurnout5::OnPropHit",
-"ninstr": 6,
-"nslots": 1,
-"online": false,
-"parent_table": "0x820CEC30",
-"parent_why": "similarity",
-"slots": [
-{
-"owner": "BrnWorld::BoostBurnout5",
-"owner_why": "slot names + hierarchy",
-"slot": 16,
-"stored": 0,
-"table": "0x820CEDC8"
-}
-],
-"subsystem": "World",
-"verdict": "true",
-"why": "slot 16 differs from parent 0x820CEC30 (similarity), which names `OnPropHit`; body is folded as `BrnWorld::BoostBurnout3::OnPropHit`; DWARF: virtual"
 },
 {
 "addr": "0x825011B0",

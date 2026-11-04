@@ -1545,7 +1545,7 @@ def render_top(W, rows, verdicts):
     for n, v in sorted(top, key=lambda kv: kv[1]["rank"]):
         r = by.get(n)
         if not r:
-            W("| %d | `%s` | | | | fixed since: no longer reported |" % (v["rank"], n))
+            W("| %d | `%s` | | | | **Fixed since, no longer reported.** %s |" % (v["rank"], n, v.get("lost", "")))
             continue
         W("| %d | `%s` | `%s` | %d | %s | %s |" % (
             v["rank"], n, r["addr"], r["ninstr"],
