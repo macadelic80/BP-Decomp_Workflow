@@ -114,7 +114,7 @@ Game code, hand-checked and ranked by hand: what a player reaches offline first,
 
 | # | method | addr | insns | falls back on | what is lost |
 |---:|---|---|---:|---|---|
-| 1 | `BrnWorld::BoostBurnout5::OnPropHit` | `0x822A6620` | 6 | `BrnWorld::BoostBurnout2::OnPropHit` | Smashing a prop pays no boost in the Burnout 5 boost mode. Console slot 16 is `AddBoost(member +0x84)`, folded as `BoostBurnout3::OnPropHit`; our base is `{}`. DWARF declares it (BrnBoostBurnout5.h:176). `BrnBoostBurnout5.h:50` rejects the override because no symbol exists: ICF hid the symbol. |
+| 1 | `BrnWorld::BoostBurnout5::OnPropHit` | `0x822A6620` | 6 | `BrnWorld::BoostStrategy::OnPropHit` | Smashing a prop pays no boost in the Burnout 5 boost mode. Console slot 16 is `AddBoost(member +0x84)`, folded as `BoostBurnout3::OnPropHit`; our base is `{}`. DWARF declares it (BrnBoostBurnout5.h:176). `BrnBoostBurnout5.h:50` rejects the override because no symbol exists: ICF hid the symbol. |
 | 2 | `BrnWorld::BoostBurnout5::OnEndCrashPlay` | `0x822D5350` | 10 | `BrnWorld::BoostStrategy::OnEndCrashPlay` | After a crash the console rescales the max boost and clears a field, then calls UpdateMaxBoost. Our base is `{}`. Same rejection at BrnBoostBurnout5.h:50. Body folded as `BoostBurnout2::OnEndCrashPlay`. |
 | 3 | `BrnGameState::FaceOffMode::Start` | `0x82330440` | 139 | `BrnGameState::GameMode::Start` | Face Off setup: mode params, random destinations, checkpoint data. The mode runs GameMode::Start instead. |
 | 4 | `BrnGui::CrashNavMapIcon::SetIconText` | `0x82448310` | 12 | `BrnGui::MapIconBrnBase::SetIconText` | Crash-nav icons never get their text. BrnMapIconManager.cpp:1559 and :1615 call it, and the virtual lands on the empty MapIconBrnBase default. Console sets the text field at +52. |
@@ -284,7 +284,7 @@ Game code, hand-checked and ranked by hand: what a player reaches offline first,
 |---|---|---:|---|---|---|---|
 | `BrnAI::AIDebugComponent::RenderWorld` | `0x82796A08` | 128 | medium | yes / no | `CgsDev::DebugComponent::RenderWorld` | `0x820CE988` / 1 |
 | `BrnWorld::BoostBurnout5::OnEndCrashPlay` | `0x822D5350` | 10 | low | yes / yes | `BrnWorld::BoostStrategy::OnEndCrashPlay` | `0x820CEDC8` / 14 |
-| `BrnWorld::BoostBurnout5::OnPropHit` | `0x822A6620` | 6 | low | yes / yes | `BrnWorld::BoostBurnout2::OnPropHit` | `0x820CEDC8` / 16 |
+| `BrnWorld::BoostBurnout5::OnPropHit` | `0x822A6620` | 6 | low | yes / yes | `BrnWorld::BoostStrategy::OnPropHit` | `0x820CEDC8` / 16 |
 | `BrnProgression::ProgressionDebugComponent::GetPath` | `0x82312480` | 4 | low | yes / yes | `CgsDev::DebugComponent::GetPath` | `0x820CDE4C` / 4 |
 
 ### Physics (4)
@@ -300,12 +300,12 @@ Game code, hand-checked and ranked by hand: what a player reaches offline first,
 
 | method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
 |---|---|---:|---|---|---|---|
-| `BrnWorld::PVSModule::PrepareDataStructures` | `0x827E41D0` | 28 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::PrepareDataStructures` | `0x820D1190` / 12 |
-| `BrnWorld::PVSModule::ReleaseDataStructures` | `0x827E4240` | 28 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::ReleaseDataStructures` | `0x820D1190` / 13 |
-| `BrnWorld::PVSModule::CreateInputDataStructure` | `0x827E4110` | 13 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::CreateInputDataStructure` | `0x820D1190` / 14 |
-| `BrnWorld::PVSModule::CreateOutputDataStructure` | `0x827E4148` | 13 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::CreateOutputDataStructure` | `0x820D1190` / 15 |
-| `BrnWorld::PVSModule::DestroyInputDataStructure` | `0x827E4180` | 10 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::DestroyInputDataStructure` | `0x820D1190` / 10 |
-| `BrnWorld::PVSModule::DestroyOutputDataStructure` | `0x827E41A8` | 10 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::DestroyOutputDataStructure` | `0x820D1190` / 11 |
+| `BrnWorld::PVSModule::PrepareDataStructures` | `0x827E41D0` | 28 | medium | yes / yes | `CgsModule::ModuleSingleBufferedTemplate::PrepareDataStructures` | `0x820D1190` / 12 |
+| `BrnWorld::PVSModule::ReleaseDataStructures` | `0x827E4240` | 28 | medium | yes / yes | `CgsModule::ModuleSingleBufferedTemplate::ReleaseDataStructures` | `0x820D1190` / 13 |
+| `BrnWorld::PVSModule::CreateInputDataStructure` | `0x827E4110` | 13 | medium | yes / yes | `CgsModule::ModuleSingleBufferedTemplate::CreateInputDataStructure` | `0x820D1190` / 14 |
+| `BrnWorld::PVSModule::CreateOutputDataStructure` | `0x827E4148` | 13 | medium | yes / yes | `CgsModule::ModuleSingleBufferedTemplate::CreateOutputDataStructure` | `0x820D1190` / 15 |
+| `BrnWorld::PVSModule::DestroyInputDataStructure` | `0x827E4180` | 10 | medium | yes / yes | `CgsModule::ModuleSingleBufferedTemplate::DestroyInputDataStructure` | `0x820D1190` / 10 |
+| `BrnWorld::PVSModule::DestroyOutputDataStructure` | `0x827E41A8` | 10 | medium | yes / yes | `CgsModule::ModuleSingleBufferedTemplate::DestroyOutputDataStructure` | `0x820D1190` / 11 |
 
 ### Graphics (2)
 
@@ -454,14 +454,14 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | `XAUDIO::CSourceStream::Start` | `0x82964980` | 60 | high | yes / no |  | `0x82109120` / 10 |
 | `XAUDIO::CSourceStream::Discontinuity` | `0x82964BA0` | 59 | high | yes / no |  | `0x82109120` / 12 |
 | `XAUDIO::CPCMSourceEffect::Discontinuity` | `0x8296B8F0` | 59 | low | no / no |  | `0x8210A108` / 14 |
-| `XAUDIO::CRoutedVoice::GetVoiceState` | `0x82C2F728` | 57 | low | yes / no | `XAUDIO::CVoice::GetVoiceState` | `0x821B5568` / 12 |
+| `XAUDIO::CRoutedVoice::GetVoiceState` | `0x82C2F728` | 57 | low | yes / no | `CVoice::GetVoiceState` | `0x821B5568` / 12 |
 | `XAUDIO::CXMASourceEffect::SetPacketPosition` | `0x82969178` | 54 | high | no / no |  | `0x8210A000` / 16 |
 | `XAUDIO::CPCMSourceEffect::SetPacketPosition` | `0x8296B600` | 51 | high | no / no |  | `0x8210A108` / 16 |
 | `XAUDIO::CSourceStream::SetState` | `0x829648B8` | 50 | high | yes / no |  | `0x82109120` / 21 |
 | `XAUDIO::CRouterEffect::Initialize` | `0x82963408` | 50 | high | no / no |  | `0x821090E0` / 13 |
 | `XAUDIO::CPCMSourceEffect::SetVolume` | `0x8296B2A8` | 48 | high | no / no |  | `0x8210A108` / 22 |
 | `XAUDIO::CXMASourceEffect::SubmitSourceBuffer` | `0x82968520` | 48 | high | no / no |  | `0x8210A000` / 9 |
-| `XAUDIO::CRoutedVoice::Stop` | `0x82C30360` | 43 | low | yes / no | `XAUDIO::CVoice::Stop` | `0x821B5568` / 15 |
+| `XAUDIO::CRoutedVoice::Stop` | `0x82C30360` | 43 | low | yes / no | `CVoice::Stop` | `0x821B5568` / 15 |
 | `XAUDIO::CXMASourceEffect::CompletePacket` | `0x829685E0` | 42 | low | no / no |  | `0x82109F78` / 23 |
 | `XAUDIO::CSourceStream::FlushPackets` | `0x82967670` | 41 | high | yes / no |  | `0x82109120` / 4 |
 | `XAUDIO::CSourceStream::SetFormat` | `0x82967AE8` | 39 | high | yes / no |  | `0x82109120` / 14 |
@@ -671,7 +671,7 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | `CgsResource::PFXHookBundleResourceType::GetSerialisedResourceDescriptor` | `0x82502C30` | 18 | medium | yes / yes | `CgsResource::Type::GetSerialisedResourceDescriptor` | `0x820A1834` / 1 |
 | `CgsResource::AptDataHeaderType::GetSerialisedResourceDescriptor` | `0x82502C30` | 18 | medium | yes / yes | `CgsResource::Type::GetSerialisedResourceDescriptor` | `0x820A0EA0` / 1 |
 | `rw::audio::core::TimeStretch::ReleaseEvent` | `0x82B9C548` | 18 | medium | no / no |  | `0x8217F564` / 0 |
-| `AptBoolean::DeleteThis` | `0x82AD4DD8` | 8 | low | yes / yes | `AptInteger::DeleteThis` | `0x82145594` / 8 |
+| `AptBoolean::DeleteThis` | `0x82AD4DD8` | 8 | low | yes / yes | `AptValue::DeleteThis` | `0x82145594` / 8 |
 | `EA::Jobs::LocalBackend::LocalBackend::GetJobThreadSleepTimeoutMS` | `0x82BCBE60` | 2 | low | yes / yes |  | `0x82182500` / 21 |
 | `rw::audio::core::SndPlayer1::GetPpuTicksEvent` | `0x82BDD2D0` | 2 | low | yes / no |  | `0x8217F334` / 6 |
 | `rw::audio::core::PacketPlayer::GetPpuTicksEvent` | `0x82B982B8` | 2 | low | no / no |  | `0x8217F324` / 2 |

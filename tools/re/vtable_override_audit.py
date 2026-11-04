@@ -1208,6 +1208,11 @@ def slot_pass(tables, g, hy, tree, dw, rows, counts, addr_file, rowbase):
             if state in ("present", "present_text", "truncated"):
                 counts["ICF_OVERRIDE_PRESENT"] += 1
                 continue
+            # What actually runs here is the nearest real ancestor's body, not a similar table's.
+            for a in hy.ancestors(t.owner):
+                if tree.lookup(a, leaf)[0] in ("exact", "tail"):
+                    base = a
+                    break
             cls = "ICF_TRIVIAL_OVERRIDE" if g[s]["i"] <= 2 else (
                 "ICF_OVERRIDE_MISSING" if nm.named else "UNNAMED_OVERRIDE_MISSING")
             name = t.owner + "::" + leaf
