@@ -24,18 +24,16 @@ $lsModeName = @{ 10 = 'OnlineRace'; 11 = 'OnlineRoadRage'; 13 = 'OnlineBurningHo
 # OnlineGameOptions::RequestPresetEvents: road rage asks for the race list.
 $liPresetType = if ($liMode -eq 13) { 13 } else { 10 }
 
-# GUI 281 (NetworkInLoadingScreenShown) stands in for OnlineLoading's own post: on this build that
-# screen waits forever in LOADING_COMPONENTS (see the run report), and StartGameMode waits on it.
-$lsLoadedScript = '85:out:281;100:out:281;115:out:281'
-
+# No GUI 281 stand-in: since b5 f2259c23e (findInst) OnlineLoading binds its components and posts
+# the screen's own events, so the harness only asks for the presets and the launch, once.
 # Road rage launches only with exactly two teams (StateManager::GameModeHasEnoughTeams), and nothing
 # on this build puts a lobby player on a first team: BRN_NET_TEAM does it once the mode has changed.
 $lsHostTeam  = if ($liMode -eq 11) { ',BRN_NET_TEAM=30:1' } else { '' }
 $lsGuestTeam = if ($liMode -eq 11) { ',BRN_NET_TEAM=30:2' } else { '' }
 
 $lPairRoles = [ordered]@{
-  Host  = @{ Other = 'Guest'; Harness = "BRN_NET_HOST=1,BRN_NET_START_MODE=25:$liMode,BRN_NET_SCRIPT=10:gui:193:$liPresetType;40:net:$lsLaunchGui;50:net:$lsLaunchGui;60:net:$lsLaunchGui;$lsLoadedScript$lsHostTeam" }
-  Guest = @{ Other = 'Host';  Harness = "BRN_NET_JOIN=1,BRN_NET_SCRIPT=$lsLoadedScript$lsGuestTeam" }
+  Host  = @{ Other = 'Guest'; Harness = "BRN_NET_HOST=1,BRN_NET_START_MODE=25:$liMode,BRN_NET_SCRIPT=10:gui:193:$liPresetType;40:net:$lsLaunchGui$lsHostTeam" }
+  Guest = @{ Other = 'Host';  Harness = "BRN_NET_JOIN=1$lsGuestTeam" }
 }
 
 if ($Role -eq '') {
@@ -73,7 +71,7 @@ $lCounts = {
   Bug     = "none -- the $Role half of net_lan_start_mode (run it through tools\tests\run_pair.ps1)"
   Frames  = $true
   Run     = @{ MaxSeconds = 230; TitleStart = $true; SkipIntro = $true; AcceptGap = 1.0; FrameEvery = 300 }
-  DiagEnv = "$($lR.Harness),BRN_NET_DELAY=20,BRN_SCREEN_DIAG=1"
+  DiagEnv = "$($lR.Harness),BRN_NET_DELAY=20,BRN_SCREEN_DIAG=1,BRN_SATNAV_DIAG=1"
   Setup   = (& $NetPair.Setup $Role)
   Checks  = @(
     @{ Kind = 'NewAsserts'; Name = 'no NEW assert families' }
