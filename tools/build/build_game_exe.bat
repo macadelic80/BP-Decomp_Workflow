@@ -4219,6 +4219,7 @@ echo "%SRC%\SharedClasses\Traffic\BrnTrafficVehicleTraits.cpp"
   echo "%SRC%\GameSource\Replays\BrnGuiModuleAboveCarObjectLayout.cpp"
   echo "%SRC%\GameSource\Gui\CustomRenderer\Renderers\BrnAboveCarRenderer.cpp"
   echo "%SRC%\GameSource\Gui\CustomRenderer\Renderers\BrnBlackBarRenderer.cpp"
+  echo "%SRC%\GameSource\Gui\CustomRenderer\Renderers\BrnProgressBarRenderer.cpp"
   echo "%SRC%\GameShared\GameClasses\Graphics\ImmediateMode\ImRenderBuffer\CgsIm3dRenderBuffer.cpp"
   echo "%SRC%\GameSource\Gui\CustomRenderer\Renderers\BrnNetworkPlayerImageRenderer.cpp"
   rem  BrnGui::CreditsTextRenderer -- the mounted scrolling end/replay credits column.
