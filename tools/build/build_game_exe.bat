@@ -1116,6 +1116,7 @@ echo "%SRC%\SDKs\Csis\CsisGlobalVariableHandle.cpp"
   rem ---- the broad phase (culling wave 2026-07-28): the loose octree + its manager ----
   echo "%SRC%\GameShared\GameClasses\SceneManager\SpatialPartitionModule\SpatialPartitions\CgsSpatialPartition.cpp"
   echo "%SRC%\GameShared\GameClasses\SceneManager\SpatialPartitionModule\SpatialPartitions\CgsLooseOctree.cpp"
+  echo "%SRC%\GameShared\GameClasses\SceneManager\SpatialPartitionModule\CgsJobCoarseResultBuffer.cpp"
   echo "%SRC%\GameShared\GameClasses\SceneManager\SpatialPartitionModule\CgsSpatialPartitionManager.cpp"
   echo "%SRC%\GameShared\GameClasses\SceneManager\SpatialPartitionModule\CgsSpatialPartitionManagerIO.cpp"
   echo "%SRC%\GameShared\GameClasses\System\AttribSys\CgsAttribSysModuleIO.cpp"
