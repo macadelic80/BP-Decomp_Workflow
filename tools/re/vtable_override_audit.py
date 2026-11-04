@@ -21,6 +21,8 @@
 #      constructor/destructor that stores the table as evidence.
 #   4. Each virtual body named `C::m` is looked up in our tree. A slot naming something unrelated
 #      is an ICF fold and is classified separately, never as a plain miss.
+#   5. A method DWARF declares virtual on the class, with no body here, is looked for through
+#      related tables too: a fold can match a sibling exactly and still differ from the base.
 #
 # ⛔ FOUR WAYS THIS WOULD LIE, each handled below rather than assumed away:
 #   * ICF. The linker folds identical bodies, so FaceOffMode's slot 8 reads
@@ -60,7 +62,7 @@ DWARF = os.path.join(REPO, "references", "DecFIGS", "dwarfdump")
 VERDICTS = os.path.join(HERE, "vtable_override_verdicts.json")
 TMP = tempfile.gettempdir()
 IMAGE_CACHE = os.path.join(TMP, "brn_artist_image.bin")
-FUNC_CACHE = os.path.join(TMP, "brn_vtable_audit_funcs.json")
+FUNC_CACHE = os.path.join(TMP, "brn_vtable_audit_funcs_v2.json")
 DWARF_CACHE = os.path.join(TMP, "brn_vtable_audit_dwarf_v2.json")
 
 FLAT_BASE = 0x82000000
@@ -107,6 +109,9 @@ CLS_HELP = [
                              "body was folded, and our class has no body for the method the parent "
                              "names there. Real difference, but a small shared body by nature."),
     ("UNNAMED_OVERRIDE_MISSING", "Same, for a `sub_` body IDA could not name."),
+    ("ICF_TRIVIAL_OVERRIDE", "Same, but the body is at most 2 instructions (empty, or `li r3,N`). Most "
+                             "match the base's behaviour, and these are where the slot mapping is "
+                             "weakest. Not listed here: in the JSON."),
     ("TRUNCATED_MATCH", "The console's name is clipped and a method of the class extends it. "
                         "Probably present; candidates listed for a human to confirm."),
     ("AMBIGUOUS_NAMESPACE", "A definition of `Class::method` exists under ANOTHER namespace. A "
@@ -125,7 +130,7 @@ CLS_HELP = [
     ("GENERATED_DTOR", "Deleting destructor: compiler output, nothing to write."),
 ]
 LISTED = [c for c, _ in CLS_HELP if c not in ("GENERATED_DTOR", "ICF_NAME_ONLY", "ICF_SAME_AS_BASE",
-                                              "CLIPPED_NAME")]
+                                              "CLIPPED_NAME", "ICF_TRIVIAL_OVERRIDE")]
 
 
 def log(*a):
@@ -265,11 +270,14 @@ def load_funcs(rebuild=False):
             continue
         asm = j.get("assembly") or ""
         labels, stores = vptr_stores(asm)
+        first = RE_ASM.match((asm.splitlines() or [""])[0].strip())
         g[int(j.get("address") or fn[:-5], 16)] = {
             "n": j.get("name") or "",
             "i": asm.count("\n") + (1 if asm else 0),
             "l": labels, "s": stores,
             "fr": [x.get("name") or "" for x in (j.get("xrefs_from") or [])],
+            # A body that IS one branch. xrefs_from leaves tail calls out.
+            "tail": first.group(3).strip().replace("__", "::") if first and first.group(2) == "b" else "",
         }
     tmp = FUNC_CACHE + ".%d.tmp" % os.getpid()
     with open(tmp, "w", encoding="utf-8") as f:
@@ -1076,7 +1084,8 @@ def audit(src=None, image=None, rebuild=False):
                          method=resolved, class_name=cls, class_in_tree=class_in,
                          class_mounted=tree.class_mounted(cls), fallback=fallback,
                          declared=declared, dwarf_sig=(drec.get("sig") or {}).get(resolved),
-                         candidates=cand[:6]))
+                         candidates=cand[:6],
+                         forwards_to_base=forwards_to_base(g[addr], resolved, cls, hy)))
 
     # --- B. slots whose body carries a foreign name (or none): the override is folded/unnamed.
     slot_pass(tables, g, hy, tree, dw, rows, counts, addr_file, rowbase)
@@ -1090,6 +1099,81 @@ def audit(src=None, image=None, rebuild=False):
               n_slots=sum(len(t.slots) for t in tables.values()),
               n_bodies=len(where), files=tree.nfiles)
     return rows, counts, st, tables, g, tree
+
+
+def forwards_to_base(f, leaf, cls, hy):
+    """A body that only tail-calls an ancestor's method of the same name: the console has the
+    override, inheriting changes nothing. FaceOffMode::PreWorldUpdate is exactly this."""
+    if f.get("tail"):
+        callee = f["tail"]
+    elif f["i"] <= 3 and len(f["fr"]) == 1 and f["fr"][0]:
+        callee = f["fr"][0]
+    else:
+        return False
+    n = Name(callee)
+    return n.leaf == leaf and bool(n.cls) and hy.is_ancestor(n.cls, cls)
+
+
+def dwarf_pass(tables, g, hy, tree, dw, rows, counts, rowbase, seen):
+    """DWARF says C declares virtual m, our tree has no body, and a RELATED table names m at slot i.
+    C's slot i then holds a body carrying someone else's name. The parent walk misses this when
+    the only comparable table is a sibling's and the bodies match: BoostBurnout5 slot 14 is
+    `BoostBurnout2::OnEndCrashPlay`, the same address as its sibling and not the empty base."""
+    reported = {r["name"] for r in rows}
+    by_base = defaultdict(list)
+    for t in tables.values():
+        if t.owner:
+            for a in hy.ancestors(t.owner):
+                by_base[a].append(t)
+    for t in tables.values():
+        if not t.owner:
+            continue
+        cls = hy.resolve(t.owner)
+        drec = dw.get(cls) or dw.get(t.owner) or {}
+        for m in drec.get("v", ()):
+            if m.startswith("~") or (cls, m) in seen or t.owner + "::" + m in reported:
+                continue
+            if method_status(tree, t.owner, m, dw)[0] != "missing":
+                continue
+            found = None
+            for a in hy.ancestors(t.owner):
+                for other in by_base.get(a, ()):
+                    if other is t:
+                        continue
+                    for i, s in enumerate(other.slots):
+                        if i < len(t.slots) and s in g and Name(g[s]["n"]).leaf == m:
+                            found = (i, other, a)
+                            break
+                    if found:
+                        break
+                if found:
+                    break
+            if not found:
+                continue
+            i, other, base = found
+            s = t.slots[i]
+            if s not in g:
+                continue
+            nm = Name(g[s]["n"])
+            if nm.named and nm.cls and hy.same(nm.cls, t.owner):
+                continue            # named for this class: pass A reports it
+            if nm.named and nm.cls and hy.is_ancestor(nm.cls, t.owner):
+                continue            # the ancestor's own body: truly inherited
+            seen.add((cls, m))
+            trivial = g[s]["i"] <= 2
+            r = rowbase(t.owner + "::" + m, s, g[s]["i"],
+                        "ICF_TRIVIAL_OVERRIDE" if trivial else "ICF_OVERRIDE_MISSING", [(t.addr, i)])
+            # The slot is mapped through a sibling, so this never reaches high.
+            r.update(confidence="low" if trivial or not t.stores else "medium", method=m, class_name=t.owner,
+                     folded_as=g[s]["n"], parent_table="0x%08X" % other.addr, parent_why="dwarf+sibling",
+                     class_in_tree=leaf_of(t.owner) in tree.class_marks,
+                     class_mounted=tree.class_mounted(t.owner), fallback=base + "::" + m,
+                     dwarf_sig=(drec.get("sig") or {}).get(m),
+                     forwards_to_base=forwards_to_base(g[s], m, t.owner, hy),
+                     why="DWARF declares it virtual on this class; sibling table 0x%08X names `%s` at "
+                         "slot %d; here the slot holds `%s`" % (other.addr, m, i, g[s]["n"] or "sub_"))
+            rows.append(r)
+            counts["dwarf_pass_rows"] += 1
 
 
 def slot_pass(tables, g, hy, tree, dw, rows, counts, addr_file, rowbase):
@@ -1124,7 +1208,8 @@ def slot_pass(tables, g, hy, tree, dw, rows, counts, addr_file, rowbase):
             if state in ("present", "present_text", "truncated"):
                 counts["ICF_OVERRIDE_PRESENT"] += 1
                 continue
-            cls = "ICF_OVERRIDE_MISSING" if nm.named else "UNNAMED_OVERRIDE_MISSING"
+            cls = "ICF_TRIVIAL_OVERRIDE" if g[s]["i"] <= 2 else (
+                "ICF_OVERRIDE_MISSING" if nm.named else "UNNAMED_OVERRIDE_MISSING")
             name = t.owner + "::" + leaf
             r = rowbase(name, s, g[s]["i"], cls, [(t.addr, i)])
             drec = dw.get(t.owner) or {}
@@ -1136,10 +1221,12 @@ def slot_pass(tables, g, hy, tree, dw, rows, counts, addr_file, rowbase):
                      class_in_tree=leaf_of(t.owner) in tree.class_marks,
                      class_mounted=tree.class_mounted(t.owner), fallback=base + "::" + leaf,
                      dwarf_sig=(drec.get("sig") or {}).get(leaf),
+                     forwards_to_base=forwards_to_base(g[s], leaf, t.owner, hy),
                      why="slot %d differs from parent 0x%08X (%s), which names `%s`; body is folded "
                          "as `%s`%s" % (i, t.parent, t.parent_why, leaf, g[s]["n"] or "sub_",
                                         "; DWARF: virtual" if dvirt else ""))
             rows.append(r)
+    dwarf_pass(tables, g, hy, tree, dw, rows, counts, rowbase, seen)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -1225,19 +1312,14 @@ def load_verdicts():
         return json.load(f)
 
 
-def importance(r):
-    """Top-20 order: game code a real player reaches, largest first. Online sorts after offline
-    only as a tie-break of the bucket; size decides inside it."""
-    return (-(r.get("class_mounted") and 1 or 0), -r["ninstr"])
-
-
-def md_table(rows, extra=False):
+def md_table(rows):
     L = ["| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |",
          "|---|---|---:|---|---|---|---|"]
     for r in rows:
         s = r["slots"][0] if r["slots"] else {"table": "?", "slot": 0}
         L.append("| `%s` | `%s` | %d | %s | %s / %s | %s | `%s` / %d |" % (
-            r["name"], r["addr"], r["ninstr"], r["confidence"],
+            r["name"], r["addr"], r["ninstr"],
+            r["confidence"] + (", forwards to base" if r.get("forwards_to_base") else ""),
             "yes" if r.get("class_in_tree") else "no", "yes" if r.get("class_mounted") else "no",
             ("`%s`" % r["fallback"]) if r.get("fallback") else "", s["table"], s["slot"]))
     return L
@@ -1245,7 +1327,6 @@ def md_table(rows, extra=False):
 
 def emit(rows, counts, st, rev, control_lines, control_ok, out_md, out_json):
     verdicts = load_verdicts()
-    order = {"high": 0, "medium": 1, "low": 2}
     rows.sort(key=lambda r: (r["cls"], -r["ninstr"], r["name"]))
     for r in rows:
         if r["name"] in verdicts:
@@ -1307,11 +1388,12 @@ def emit(rows, counts, st, rev, control_lines, control_ok, out_md, out_json):
     W("")
     W("## The 20 most important true gaps")
     W("")
-    W("Game code, online and debug excluded unless noted, hand-checked. Order: a class our exe "
-      "already mounts first, then console size. Size is a proxy for how much behaviour is lost, "
-      "not a measure of how visible it is.")
+    W("Game code, hand-checked and ranked by hand: what a player reaches offline first, then the "
+      "online modes, then latent or teardown code. The order is a judgement, not a measurement; "
+      "nothing here was run. A sort by size would put teardown stages above a 6-instruction boost "
+      "payout. Other sessions may be filling some of these on other branches: this reads the b5 "
+      "revision named at the top.")
     W("")
-    top = [r for r in rows if r.get("verdict") == "true" and r.get("top")]
     render_top(W, rows, verdicts)
     W("")
     # game
@@ -1339,6 +1421,9 @@ def emit(rows, counts, st, rev, control_lines, control_ok, out_md, out_json):
     W("")
     W("## What this audit cannot see")
     W("")
+    W("0. **`--control` cannot prove completeness.** It proves known cases come out, nothing about "
+      "cases nobody has found. `BoostBurnout5::OnEndCrashPlay` slipped past the first design and "
+      "only surfaced by reading a neighbouring row.")
     W("1. **A body is not a behaviour.** A row without a definition may have been inlined by hand "
       "into a caller; a row with one may be wrong. This only asks whether `Class::method` exists.")
     W("2. **Overloads collapse.** One defined overload hides a missing one. A definition whose "
@@ -1371,7 +1456,6 @@ def emit(rows, counts, st, rev, control_lines, control_ok, out_md, out_json):
     W("```")
     with open(out_md, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(L) + "\n")
-    return order
 
 
 def render_subsystems(W, sub):
@@ -1395,6 +1479,14 @@ def render_subsystems(W, sub):
         W("")
 
 
+VERDICT_HELP = [
+    ("true", "the console override has no equivalent in our tree: behaviour is lost"),
+    ("equivalent", "the override exists on console and not here, but inheriting changes nothing"),
+    ("platform", "a PC backend replaces this on purpose, so there is nothing to port as such"),
+    ("false", "the audit is wrong: renamed, absorbed elsewhere, or the slot was mapped wrongly"),
+]
+
+
 def render_verification(W, rows, verdicts):
     by = {r["name"]: r for r in rows}
     if not verdicts:
@@ -1404,16 +1496,28 @@ def render_verification(W, rows, verdicts):
     for name, v in verdicts.items():
         sets[v.get("set", "sample")].append((name, v))
     W("Each row below was read by hand: the table slot, the console body, our class and its base, "
-      "and `tools/re/hasbody.py`. `sample` rows were drawn at random with a fixed seed from the "
-      "MISSING rows of game code, before any verdict; `top` rows were chosen for importance, so "
-      "they do not measure the tool's error rate and are counted apart.")
+      "and `tools/re/hasbody.py`. Verdicts:")
     W("")
-    W("| set | checked | true gap | false positive | rate of true gaps |")
-    W("|---|---:|---:|---:|---:|")
+    for k, why in VERDICT_HELP:
+        W("* `%s`: %s." % (k, why))
+    W("")
+    W("`sample_*` rows were drawn at random with a fixed seed, before any verdict on them, from the "
+      "game-code rows of one class. **Only they measure the error rate.** `sample_missing` is the "
+      "MISSING class. `sample_icf` is the folded class as it stood before bodies of 2 instructions "
+      "or fewer were split off: most of its false rows moved to ICF_TRIVIAL_OVERRIDE, so it "
+      "describes that older, wider class. `sample_dwarf` is the DWARF pass (8 drawn, one dropped "
+      "when the row turned out to duplicate a MISSING row). `read` rows were picked because they "
+      "looked important or suspicious, so their rate means nothing; the false positives found "
+      "there are the ones to remember. A first sample, before the `const override` scanner fix, is "
+      "not counted: it exposed that bug and was redrawn.")
+    W("")
+    W("| set | checked | true | equivalent | platform | false | true rate |")
+    W("|---|---:|---:|---:|---:|---:|---:|")
     for s, items in sorted(sets.items()):
-        t = sum(1 for _, v in items if v["verdict"] == "true")
-        fp = sum(1 for _, v in items if v["verdict"] != "true")
-        W("| %s | %d | %d | %d | %.0f%% |" % (s, len(items), t, fp, 100.0 * t / max(1, len(items))))
+        c = Counter(v["verdict"] for _, v in items)
+        W("| %s | %d | %d | %d | %d | %d | %.0f%% |" % (
+            s, len(items), c["true"], c["equivalent"], c["platform"], c["false"],
+            100.0 * c["true"] / max(1, len(items))))
     W("")
     W("| set | method | addr | insns | verdict | evidence |")
     W("|---|---|---|---:|---|---|")
@@ -1422,7 +1526,7 @@ def render_verification(W, rows, verdicts):
             r = by.get(name)
             W("| %s | `%s` | `%s` | %s | %s | %s |" % (
                 s, name, r["addr"] if r else "?", r["ninstr"] if r else "?",
-                v["verdict"] if r else v["verdict"] + " (row no longer reported)", v.get("note", "")))
+                v["verdict"] if r else v["verdict"] + " (no longer reported)", v.get("note", "")))
 
 
 def render_top(W, rows, verdicts):

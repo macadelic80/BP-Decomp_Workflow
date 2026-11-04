@@ -13,8 +13,9 @@ A virtual the console overrides and we do not **compiles and links in silence**:
 |---|---:|---:|---:|---:|---:|---:|---:|---|
 | MISSING | 190 | 88 | 86 | 16 | 99 | 52 | 39 | The console overrides it, the class exists in our tree, the method has no body. The slot silently falls back on the base. |
 | MISSING_CLASS_ABSENT | 154 | 3 | 143 | 8 | 56 | 21 | 77 | The console overrides it but the whole class is absent from our tree. A larger gap of a different shape: no fallback, no object. |
-| ICF_OVERRIDE_MISSING | 45 | 12 | 31 | 2 | 1 | 34 | 10 | Slot differs from the parent's, carries a foreign name because the body was folded, and our class has no body for the method the parent names there. Real difference, but a small shared body by nature. |
-| UNNAMED_OVERRIDE_MISSING | 9 | 8 | 0 | 1 | 0 | 8 | 1 | Same, for a `sub_` body IDA could not name. |
+| ICF_OVERRIDE_MISSING | 38 | 26 | 9 | 3 | 0 | 27 | 11 | Slot differs from the parent's, carries a foreign name because the body was folded, and our class has no body for the method the parent names there. Real difference, but a small shared body by nature. |
+| UNNAMED_OVERRIDE_MISSING | 6 | 5 | 0 | 1 | 0 | 5 | 1 | Same, for a `sub_` body IDA could not name. |
+| ICF_TRIVIAL_OVERRIDE | 136 | 114 | 22 | 0 | 1 | 30 | 105 | Same, but the body is at most 2 instructions (empty, or `li r3,N`). Most match the base's behaviour, and these are where the slot mapping is weakest. Not listed here: in the JSON. |
 | TRUNCATED_MATCH | 13 | 3 | 10 | 0 | 0 | 13 | 0 | The console's name is clipped and a method of the class extends it. Probably present; candidates listed for a human to confirm. |
 | AMBIGUOUS_NAMESPACE | 0 | 0 | 0 | 0 | 0 | 0 | 0 | A definition of `Class::method` exists under ANOTHER namespace. A name collision may be hiding a miss, or the namespace may be spelled differently. |
 | CLIPPED_NAME | 32 | 32 | 0 | 0 | 0 | 32 | 0 | IDA clipped the name inside its qualifier (`BrnSound::Logic::Collisio`), so neither class nor method can be read from it. Unresolved, not a miss. |
@@ -30,52 +31,139 @@ Bodies with a definition, not listed: **3106** (of which 4 found only by the raw
 
 ## Hand verification
 
-Not done yet.
+Each row below was read by hand: the table slot, the console body, our class and its base, and `tools/re/hasbody.py`. Verdicts:
+
+* `true`: the console override has no equivalent in our tree: behaviour is lost.
+* `equivalent`: the override exists on console and not here, but inheriting changes nothing.
+* `platform`: a PC backend replaces this on purpose, so there is nothing to port as such.
+* `false`: the audit is wrong: renamed, absorbed elsewhere, or the slot was mapped wrongly.
+
+`sample_*` rows were drawn at random with a fixed seed, before any verdict on them, from the game-code rows of one class. **Only they measure the error rate.** `sample_missing` is the MISSING class. `sample_icf` is the folded class as it stood before bodies of 2 instructions or fewer were split off: most of its false rows moved to ICF_TRIVIAL_OVERRIDE, so it describes that older, wider class. `sample_dwarf` is the DWARF pass (8 drawn, one dropped when the row turned out to duplicate a MISSING row). `read` rows were picked because they looked important or suspicious, so their rate means nothing; the false positives found there are the ones to remember. A first sample, before the `const override` scanner fix, is not counted: it exposed that bug and was redrawn.
+
+| set | checked | true | equivalent | platform | false | true rate |
+|---|---:|---:|---:|---:|---:|---:|
+| read | 23 | 19 | 1 | 0 | 3 | 83% |
+| sample_dwarf | 7 | 4 | 3 | 0 | 0 | 57% |
+| sample_icf | 8 | 2 | 0 | 0 | 6 | 25% |
+| sample_missing | 20 | 16 | 2 | 2 | 0 | 80% |
+
+| set | method | addr | insns | verdict | evidence |
+|---|---|---|---:|---|---|
+| read | `BrnGameState::FaceOffMode::Start` | `0x82330440` | 139 | true | Control case; header note confirms. |
+| read | `BrnWorld::BoostBurnout5::OnEndCrashPlay` | `0x822D5350` | 10 | true | Read the asm at 0x822D5350. Not a sample row: found while checking OnPropHit. |
+| read | `BrnGui::CrashNavMapIcon::SetIconText` | `0x82448310` | 12 | true | hasbody.py says HAS BODY only through its loose fallback, on the base's empty default at BrnSatNavIcon.h:126. The static type at those call sites was not traced. |
+| read | `BrnGui::IdleHudState::Update` | `0x8247E070` | 112 | true | Only OnEnter and GetResourcesToLoad are declared. |
+| read | `BrnGui::IdleHudState::OnLeave` | `0x8247E230` | 34 | true | Short body, read in full. |
+| read | `CgsResource::VoiceHierarchyResourceType::GetSerialisedResourceDesc` | `0x826C5328` | 93 | true | Sizes the serialised hierarchy. Whether the load path needs it was not established. |
+| read | `BrnSound::Logic::Collision::CollisionStateManager::ExitGamePlay` | `0x826E8AB0` | 27 | true | Short body, read in full. The sibling TrafficStateManager declares the same virtual. |
+| read | `BrnSound::Logic::MusicEffect::Detach` | `0x826F6FA0` | 12 | true | Short body, read in full. The caller's use of the value was not traced. |
+| read | `BrnGameState::OnlineRaceMode::Start` | `0x82338EB8` | 358 | true | Control case. |
+| read | `BrnGameState::OnlineBurningHomeRunMode::Start` | `0x82339968` | 322 | true | Control case; header note confirms. |
+| read | `BrnGameState::OnlineBurningHomeRunMode::PreWorldUpdate` | `0x8234CFD0` | 109 | true | Body starts with the base call, then adds its own work. |
+| read | `BrnGui::ProgressBarRenderer::RenderComponent` | `0x824632C8` | 149 | true | No RenderComponent in the .cpp. |
+| read | `BrnGameState::GameStateModule::Release` | `0x823756A8` | 128 | true | Falls back on the module base. |
+| read | `BrnRendererModule::Release` | `0x823FBCE0` | 60 | true | hasbody.py: no definition. Console body not read beyond its size. |
+| read | `BrnPhysics::PhysicsModule::Release` | `0x8259C1C0` | 77 | true | BrnPropManager.cpp:3453 names this as the sole caller of the prop manager's release. |
+| read | `CgsFileSystem::RemapDevice::Open` | `0x828DE6B0` | 155 | true | Local class in CgsRemapDevice.cpp. |
+| read | `BrnResource::HeapResourceAllocator::DoFree` | `0x82664FD8` | 122 | true | Falls back on rw::IResourceAllocator. |
+| read | `BrnGame::BrnGameModule::Prepare` | `0x823DB848` | 206 | false | Absorbed by documented PC stand-ins: BrnGameModule.cpp:242 and :270, and GamePrepare per BrnGameMainFlowStates.cpp:1527. Not line-for-line, but not silently absent. |
+| read | `CgsFileSystem::RemapDevice::Init` | `0x828DE658` | 21 | false | Renamed: landed as `Connect()`, per CgsRemapDevice.cpp:34. |
+| read | `BrnGameState::StuntModeScoringOnline::Relase` | `0x82321878` | 6 | false | IDA's symbol is misspelt. `Release` has a body, and the header ties it to 0x82321878. |
+| read | `CgsSceneManager::SceneManagerModule::Update` | `0x827E1F28` | 15 | equivalent | Console body only asserts "Don't use this function"; the real work is in UpdateScene. |
+| read | `BrnParticle::ParticleDescriptionResourceType::GetSerialisedResourc` | `0x8267C288` | 50 | true | Declared at ParticleDescriptionResourceType.h:61, no definition: hasbody.py agrees. Whether the load path needs it was not established. |
+| read | `BrnParticle::ParticleModule::Destruct` | `0x82289A80` | 6 | true | Clears one field, then calls the base. Teardown, minor. |
+| sample_dwarf | `BrnGui::PausedHudState::GetResourcesToLoad` | `0x825011B0` | 4 | equivalent | Console sets the count to 0. State::GetResourcesToLoad sets the pointer and the count to 0. |
+| sample_dwarf | `BrnGui::CrashNavProfile::GetResourcesToLoad` | `0x825011B0` | 4 | equivalent | Same fold, 0x825011B0. The fallback named is an intermediate class; its body was not read. |
+| sample_dwarf | `BrnParticle::BrnVFXMeshCollectionResourceType::GetImportPointer` | `0x826759A8` | 4 | equivalent | Console zeroes both outputs; so does Type::GetImportPointer. |
+| sample_dwarf | `CgsResource::RwColourCubeResourceType::FixUp` | `0x8267DF60` | 4 | true | Console rebases the pointer at +4; Type::FixUp is empty and the class declares only GetTypeID and the descriptor. Whether PC colour-cube loading rebases elsewhere was not traced. |
+| sample_dwarf | `CgsResource::HudMessageListResourceType::GetSerialisedResourceDescriptor` | `0x82846698` | 18 | true | Console computes a size; the base returns an empty descriptor. The only callers found in the resource code are embed checks, so no current effect was shown. |
+| sample_dwarf | `BrnStreetData::StreetDataResourceType::GetSerialisedResourceDescriptor` | `0x8267B110` | 18 | true | Same shape as HudMessageList; same caveat. |
+| sample_dwarf | `CgsResource::AttribSysVaultResourceType::FixUp` | `0x828E1598` | 12 | true | Console rebases two non-null pointers; the class defines only the descriptor and the type id. CgsAttribSysVaultLoad.cpp may cover it on PC: not traced, so the behaviour loss is unproven. |
+| sample_icf | `BrnWorld::BoostBurnout5::OnPropHit` | `0x822A6620` | 6 | true | Read the asm at 0x822A6620 and the base at BrnBoostStrategy.cpp:371. |
+| sample_icf | `BrnWorld::BoostBurnout2::IsBlueMode` | `0x827E2F38` | 2 | false | The parent found was the sibling BoostBurnout5. The tree's base returns false, the same as the console's `li r3,0`. |
+| sample_icf | `BrnSound::Logic::SubmixesEffect::GetResourceRegistr` | `0x82661058` | 2 | false | Slot 1 of an adjustor table returns -1. `GetResourceRegistrar` returns a reference, so the parent's slot does not mean the same method. |
+| sample_icf | `BrnSound::Logic::HUDEffect::GetResourceRegistr` | `0x82661058` | 2 | false | Same mapping error. |
+| sample_icf | `BrnSound::Vehicles::Environment::CarStereoEffect::GetResourceRegistr` | `0x82661058` | 2 | false | Same mapping error. |
+| sample_icf | `BrnSound::Vehicles::Environment::SpeedStreamControl::GetTypeName` | `0x82686328` | 4 | false | An empty body cannot be GetTypeName, and the class's real GetTypeName is reported at slot 14. |
+| sample_icf | `BrnSound::Logic::Streaming::StreamingEffect::GetResourceRegistr` | `0x82661058` | 2 | false | Same mapping error. |
+| sample_icf | `CgsDev::DebugUI::CustomWindow::Render` | `0x8284CB38` | 2 | true | No definition; console slot is an empty fold. Debug UI. The base Window::Render body was not read. |
+| sample_missing | `CgsGraphics::Im3d::SetProgram` | `0x827F18A0` | 32 | platform | Console doubles the program index and binds a mask pixel-shader state. `CgsImRenderer.h:167` documents a PC 2D fold that does not use the X360 program tables. The mask path on PC was not traced. |
+| sample_missing | `BrnSound::Logic::Brn3DUserSpaceEffectControl::GetTypeName` | `0x82682C58` | 4 | true | Returns the class's own name string; no override here. Debug value only: the only non-override use found in the tree is an embed check. |
+| sample_missing | `BrnSound::Vehicles::Engines::DualGinsuEffect::GetTypeName` | `0x82684E58` | 4 | true | Same, debug name only. |
+| sample_missing | `BrnSound::Vehicles::Engines::LoopModelEffect::GetTypeName` | `0x826850F0` | 4 | true | Same, debug name only; class not mounted. |
+| sample_missing | `BrnSound::Vehicles::Wheels::WheelControl::GetTypeName` | `0x82685B38` | 4 | true | Same, debug name only. |
+| sample_missing | `CgsFileSystem::DeviceMemFileSystem::Seek` | `0x828DD8F8` | 52 | true | Header says these overrides are not reconstructed and the class stays abstract. No instantiation found, so latent. |
+| sample_missing | `BrnGameState::FaceOffMode::FillInGameModeSpecificResults` | `0x82315CC0` | 32 | true | Fills mode results from the scoring system; no body. Header note confirms. |
+| sample_missing | `BrnSound::Logic::Explosion::ExplosionEffect::Detach` | `0x826F9F80` | 2 | equivalent | Two instructions: tail-calls BrnEffectObject::Detach, which is the fallback. |
+| sample_missing | `BrnSound::Vehicles::Engines::ShiftControl::GetTypeName` | `0x826848E0` | 4 | true | Debug name only. |
+| sample_missing | `BrnAI::AIDebugComponent::RenderWorld` | `0x82796A08` | 128 | true | Declared at BrnAIDebugComponent.h:72 with no definition. Debug overlay; class not mounted. |
+| sample_missing | `CgsResource::VoiceHierarchyResourceType::FixUp` | `0x826A5D40` | 82 | true | Relocates the node and connection arrays. The type is registered and declares only GetTypeID. VoiceHierarchyNode::FixUp exists; no caller found under Sound/Logic or the resource type code. |
+| sample_missing | `CgsFileSystem::DeviceMemFileSystem::FindEnd` | `0x828DDDC0` | 36 | true | Assert-only body on console; latent, no instantiation found. |
+| sample_missing | `CgsGraphics::Im2d::SetProgram` | `0x827F1820` | 32 | platform | Same as Im3d::SetProgram: documented PC 2D fold. |
+| sample_missing | `BrnGameState::OnlineRoadRageMode::Start` | `0x823394A0` | 305 | true | Control case. Header says no body exists. |
+| sample_missing | `BrnSound::Vehicles::Environment::StaticPassbyControl::GetTypeName` | `0x82686218` | 4 | true | Debug name only. |
+| sample_missing | `BrnSound::Vehicles::Engines::PhysicsControl::GetTypeName` | `0x82684378` | 4 | true | Debug name only. |
+| sample_missing | `BrnGameState::FaceOffMode::PreWorldUpdate` | `0x82330670` | 2 | equivalent | Control case, but the whole body is `b GameMode::PreWorldUpdate`: inheriting the base is identical. Flagged forwards_to_base. |
+| sample_missing | `BrnSound::Vehicles::Environment::SpeedStreamEffect::GetTypeName` | `0x82686348` | 4 | true | Debug name only. |
+| sample_missing | `CgsSound::Logic::StateManager::GetTypeName` | `0x8268D7A8` | 4 | true | Only a comment at CgsStateManager.h:254 mentions it. Debug name only. |
+| sample_missing | `BrnRendererModule::Destruct` | `0x82408A58` | 42 | true | Destroys the sun corona and clears renderer state; falls back on the module base. Teardown only. |
 
 ## The 20 most important true gaps
 
-Game code, online and debug excluded unless noted, hand-checked. Order: a class our exe already mounts first, then console size. Size is a proxy for how much behaviour is lost, not a measure of how visible it is.
+Game code, hand-checked and ranked by hand: what a player reaches offline first, then the online modes, then latent or teardown code. The order is a judgement, not a measurement; nothing here was run. A sort by size would put teardown stages above a 6-instruction boost payout. Other sessions may be filling some of these on other branches: this reads the b5 revision named at the top.
 
-Not selected yet.
+| # | method | addr | insns | falls back on | what is lost |
+|---:|---|---|---:|---|---|
+| 1 | `BrnWorld::BoostBurnout5::OnPropHit` | `0x822A6620` | 6 | `BrnWorld::BoostBurnout2::OnPropHit` | Smashing a prop pays no boost in the Burnout 5 boost mode. Console slot 16 is `AddBoost(member +0x84)`, folded as `BoostBurnout3::OnPropHit`; our base is `{}`. DWARF declares it (BrnBoostBurnout5.h:176). `BrnBoostBurnout5.h:50` rejects the override because no symbol exists: ICF hid the symbol. |
+| 2 | `BrnWorld::BoostBurnout5::OnEndCrashPlay` | `0x822D5350` | 10 | `BrnWorld::BoostStrategy::OnEndCrashPlay` | After a crash the console rescales the max boost and clears a field, then calls UpdateMaxBoost. Our base is `{}`. Same rejection at BrnBoostBurnout5.h:50. Body folded as `BoostBurnout2::OnEndCrashPlay`. |
+| 3 | `BrnGameState::FaceOffMode::Start` | `0x82330440` | 139 | `BrnGameState::GameMode::Start` | Face Off setup: mode params, random destinations, checkpoint data. The mode runs GameMode::Start instead. |
+| 4 | `BrnGui::CrashNavMapIcon::SetIconText` | `0x82448310` | 12 | `BrnGui::MapIconBrnBase::SetIconText` | Crash-nav icons never get their text. BrnMapIconManager.cpp:1559 and :1615 call it, and the virtual lands on the empty MapIconBrnBase default. Console sets the text field at +52. |
+| 5 | `BrnGui::IdleHudState::Update` | `0x8247E070` | 112 | `State::Update` | The idle HUD state's load sequence: event 64, the cache, the resource and component stages. `BrnIdleHudState.cpp:36` already cites this body as evidence. |
+| 6 | `BrnGui::IdleHudState::OnLeave` | `0x8247E230` | 34 | `State::OnLeave` | The state never unregisters for event 64 and never posts its leave event. |
+| 7 | `BrnGameState::FaceOffMode::FillInGameModeSpecificResults` | `0x82315CC0` | 32 | `BrnGameState::GameMode::FillInGameModeSpecificResults` | Face Off results stay at the base defaults: the mode-specific fill from the scoring system never runs. |
+| 8 | `CgsResource::VoiceHierarchyResourceType::FixUp` | `0x826A5D40` | 82 | `CgsResource::Type::FixUp` | Voice-hierarchy offsets are not relocated by the type. Whether another path relocates them on PC was not traced beyond Sound/Logic and the resource type code. |
+| 9 | `BrnSound::Logic::Collision::CollisionStateManager::ExitGamePlay` | `0x826E8AB0` | 27 |  | Leaving gameplay does not destruct the collision sound content or drop its resource requests. |
+| 10 | `BrnSound::Logic::MusicEffect::Detach` | `0x826F6FA0` | 12 | `BrnSound::Logic::BrnEffectObject::Detach` | Console inverts the base Detach's result; ours returns it as is. |
+| 11 | `BrnGameState::OnlineRaceMode::Start` | `0x82338EB8` | 358 | `BrnGameState::GameMode::Start` | Online race setup: landmarks, starting grid, race cars. |
+| 12 | `BrnGameState::OnlineBurningHomeRunMode::Start` | `0x82339968` | 322 | `BrnGameState::GameMode::Start` | Online home-run setup. |
+| 13 | `BrnGameState::OnlineRoadRageMode::Start` | `0x823394A0` | 305 | `BrnGameState::GameMode::Start` | Online road rage setup. |
+| 14 | `BrnGameState::OnlineBurningHomeRunMode::PreWorldUpdate` | `0x8234CFD0` | 109 | `BrnGameState::GameMode::PreWorldUpdate` | Per-frame timer and team scoring on top of the base update. |
+| 15 | `BrnGui::ProgressBarRenderer::RenderComponent` | `0x824632C8` | 149 | `CgsGui::CustomRenderComponentInterface::RenderComponent` | The bar is never drawn; `RenderQuadUntex` exists with no caller in the .cpp. Class not mounted, so latent. |
+| 16 | `BrnGameState::GameStateModule::Release` | `0x823756A8` | 128 | `CgsModule::ModuleSingleBuffered::Release` | Staged teardown of images, content and achievements. Teardown only. |
+| 17 | `BrnRendererModule::Release` | `0x823FBCE0` | 60 | `CgsModule::ModuleSingleBuffered::Release` | Staged renderer teardown. The stage enum is declared with no Release method to use it. |
+| 18 | `BrnPhysics::PhysicsModule::Release` | `0x8259C1C0` | 77 | `CgsModule::ModuleSingleBuffered::Release` | Staged release of the vehicle, prop and deformation managers. Teardown only. |
+| 19 | `CgsFileSystem::RemapDevice::Open` | `0x828DE6B0` | 155 | `CgsFileSystem::Device::Open` | Path remapping before opening. The class forwards everything else, but no instantiation was found, so latent. |
+| 20 | `BrnResource::HeapResourceAllocator::DoFree` | `0x82664FD8` | 122 | `rw::IResourceAllocator::DoFree` | Freeing through the debug allocator, the only instance found. |
 
-## Game code (114 rows)
+## Game code (125 rows)
 
 | subsystem | rows | insns |
 |---|---:|---:|
+| GameClasses | 27 | 1419 |
 | GameState | 8 | 1395 |
-| GameClasses | 28 | 1374 |
-| Sound | 45 | 377 |
+| Sound | 40 | 367 |
 | Game | 1 | 206 |
 | Resource | 2 | 183 |
-| World | 3 | 136 |
-| CgsResource | 3 | 115 |
+| CgsResource | 7 | 163 |
+| World | 4 | 148 |
+| Physics | 4 | 109 |
 | BrnWorld | 6 | 102 |
 | Graphics | 2 | 102 |
-| Physics | 2 | 101 |
 | C: | 2 | 64 |
-| BrnParticle | 1 | 50 |
+| BrnParticle | 2 | 54 |
 | Effects | 2 | 48 |
 | Replays | 1 | 41 |
-| BrnSound | 4 | 30 |
-| BrnProgression | 1 | 22 |
-| Gui | 1 | 12 |
+| BrnProgression | 2 | 40 |
+| BrnSound | 2 | 30 |
+| Gui | 5 | 28 |
+| BrnStreetData | 1 | 18 |
+| BrnTrigger | 1 | 18 |
+| .. | 3 | 14 |
+| Director | 1 | 6 |
 | BrnGameState | 1 | 6 |
 | BrnNetwork | 1 | 2 |
 
-### GameState (8)
-
-| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
-|---|---|---:|---|---|---|---|
-| `BrnGameState::OnlineRaceMode::Start` | `0x82338EB8` | 358 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D07F0` / 5 |
-| `BrnGameState::OnlineBurningHomeRunMode::Start` | `0x82339968` | 322 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D0960` / 5 |
-| `BrnGameState::OnlineRoadRageMode::Start` | `0x823394A0` | 305 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D0860` / 5 |
-| `BrnGameState::FaceOffMode::Start` | `0x82330440` | 139 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D0500` / 5 |
-| `BrnGameState::GameStateModule::Release` | `0x823756A8` | 128 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::Release` | `0x820D10B8` / 17 |
-| `BrnGameState::OnlineBurningHomeRunMode::PreWorldUpdate` | `0x8234CFD0` | 109 | medium | yes / yes | `BrnGameState::GameMode::PreWorldUpdate` | `0x820D0960` / 2 |
-| `BrnGameState::FaceOffMode::FillInGameModeSpecificResults` | `0x82315CC0` | 32 | medium | yes / yes | `BrnGameState::GameMode::FillInGameModeSpecificResults` | `0x820D0500` / 15 |
-| `BrnGameState::FaceOffMode::PreWorldUpdate` | `0x82330670` | 2 | medium | yes / yes | `BrnGameState::GameMode::PreWorldUpdate` | `0x820D0500` / 2 |
-
-### GameClasses (28)
+### GameClasses (27)
 
 | method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
 |---|---|---:|---|---|---|---|
@@ -89,6 +177,7 @@ Not selected yet.
 | `CgsFileSystem::DeviceMemFileSystem::Read` | `0x828DD780` | 57 | low | yes / yes | `rw::core::filesys::DeviceDriver::Read` | `0x820F7BB8` / 5 |
 | `CgsFileSystem::DeviceMemFileSystem::Seek` | `0x828DD8F8` | 52 | low | yes / yes | `rw::core::filesys::DeviceDriver::Seek` | `0x820F7BB8` / 7 |
 | `CgsSound::Playback::GenericRwacReverbIRSlot::DoPreDetach` | `0x826C1D08` | 46 | medium | no / no | `CgsSound::Playback::ISlotImplementation::DoPreDetach` | `0x820B0830` / 4 |
+| `CgsSceneManager::SceneManagerDebugComponent::GetPath` | `0x827DCE38` | 39 | low | yes / yes | `CgsDev::DebugComponent::GetPath` | `0x820CE930` / 4 |
 | `CgsFileSystem::DeviceMemFileSystem::Delete` | `0x828DDA60` | 36 | high | yes / yes | `rw::core::filesys::DeviceDriver::Delete` | `0x820F7BB8` / 12 |
 | `CgsFileSystem::DeviceMemFileSystem::DirectoryCreate` | `0x828DDCA0` | 36 | high | yes / yes | `rw::core::filesys::DeviceDriver::DirectoryCreate` | `0x820F7BB8` / 17 |
 | `CgsFileSystem::DeviceMemFileSystem::DirectoryRemove` | `0x828DDD30` | 36 | high | yes / yes | `rw::core::filesys::DeviceDriver::DirectoryRemove` | `0x820F7BB8` / 18 |
@@ -101,14 +190,25 @@ Not selected yet.
 | `CgsResource::FontResourceType::Serialise` | `0x82835C60` | 27 | high | yes / yes |  | `0x820A0F60` / 12 |
 | `CgsFileSystem::RemapDevice::Init` | `0x828DE658` | 21 | low | yes / yes |  | `0x820CEF0C` / 0 |
 | `CgsSceneManager::SceneManagerModule::Update` | `0x827E1F28` | 15 | low | yes / yes | `CgsModule::ModuleSingleBuffered::Update` | `0x820D0250` / 4 |
+| `CgsResource::AttribSysVaultResourceType::FixUp` | `0x828E1598` | 12 | medium | yes / yes | `Type::FixUp` | `0x820A1400` / 4 |
 | `CgsFileSystem::DeviceMemFileSystem::Close` | `0x828DD760` | 8 | high | yes / yes | `rw::core::filesys::DeviceDriver::Close` | `0x820F7BB8` / 4 |
 | `CgsSound::Logic::StateManager::GetTypeName` | `0x8268D7A8` | 4 | medium | yes / yes |  | `0x820B66E4` / 2 |
-| `BrnSound::Vehicles::Environment::SpeedStreamControl::GetTypeName` | `0x8284CB38` | 2 | medium | yes / yes | `CgsSound::Logic::EffectControl::GetTypeName` | `0x820B208C` / 12 |
-| `BrnWorld::PVSModule::Destruct` | `0x822A93A0` | 2 | high | yes / yes | `CgsModule::ModuleSingleBuffered::Destruct` | `0x820D1190` / 3 |
-| `CgsDev::DebugUI::CustomWindow::Render` | `0x8284CB38` | 2 | medium | yes / yes | `CgsDev::DebugUI::Window::Render` | `0x820DC4C8` / 1 |
 | `CgsFileSystem::DeviceMemFileSystem::GetSize` | `0x828DD9C8` | 2 | high | yes / yes | `rw::core::filesys::DeviceDriver::GetSize` | `0x820F7BB8` / 8 |
 
-### Sound (45)
+### GameState (8)
+
+| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
+|---|---|---:|---|---|---|---|
+| `BrnGameState::OnlineRaceMode::Start` | `0x82338EB8` | 358 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D07F0` / 5 |
+| `BrnGameState::OnlineBurningHomeRunMode::Start` | `0x82339968` | 322 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D0960` / 5 |
+| `BrnGameState::OnlineRoadRageMode::Start` | `0x823394A0` | 305 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D0860` / 5 |
+| `BrnGameState::FaceOffMode::Start` | `0x82330440` | 139 | medium | yes / yes | `BrnGameState::GameMode::Start` | `0x820D0500` / 5 |
+| `BrnGameState::GameStateModule::Release` | `0x823756A8` | 128 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::Release` | `0x820D10B8` / 17 |
+| `BrnGameState::OnlineBurningHomeRunMode::PreWorldUpdate` | `0x8234CFD0` | 109 | medium | yes / yes | `BrnGameState::GameMode::PreWorldUpdate` | `0x820D0960` / 2 |
+| `BrnGameState::FaceOffMode::FillInGameModeSpecificResults` | `0x82315CC0` | 32 | medium | yes / yes | `BrnGameState::GameMode::FillInGameModeSpecificResults` | `0x820D0500` / 15 |
+| `BrnGameState::FaceOffMode::PreWorldUpdate` | `0x82330670` | 2 | medium, forwards to base | yes / yes | `BrnGameState::GameMode::PreWorldUpdate` | `0x820D0500` / 2 |
+
+### Sound (40)
 
 | method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
 |---|---|---:|---|---|---|---|
@@ -150,10 +250,8 @@ Not selected yet.
 | `BrnSound::Vehicles::RightSide3dControl::GetTypeName` | `0x82685890` | 4 | high | yes / yes | `CgsSound::Logic::Cgs3dEffectControl::GetTypeName` | `0x820B5C00` / 12 |
 | `BrnSound::Vehicles::Wheels::AIWheelControl::GetTypeName` | `0x82685B58` | 4 | high | yes / yes |  | `0x820B5CA8` / 12 |
 | `BrnSound::Vehicles::Wheels::WheelControl::GetTypeName` | `0x82685B38` | 4 | high | yes / yes |  | `0x820B3EA4` / 12 |
-| `BrnSound::Logic::FxEffect::GetResourceRegistr` | `0x82661058` | 2 | medium | yes / yes | `BrnSound::Logic::BrnEffectObject::GetResourceRegistr` | `0x820B37CC` / 1 |
-| `BrnSound::Logic::HUDEffect::GetResourceRegistr` | `0x82661058` | 2 | medium | yes / yes | `BrnSound::Logic::BrnEffectObject::GetResourceRegistr` | `0x820B5858` / 1 |
-
-...and 5 smaller rows, in the JSON.
+| `BrnSound::Logic::Explosion::ExplosionEffect::Detach` | `0x826F9F80` | 2 | high, forwards to base | yes / no | `BrnSound::Logic::BrnEffectObject::Detach` | `0x820B45E4` / 8 |
+| `BrnSound::Logic::Explosion::ExplosionEffect::GetController` | `0x82661058` | 2 | medium | yes / no | `CgsSound::Logic::EffectBase::GetController` | `0x8209FEA8` / 11 |
 
 ### Game (1)
 
@@ -168,21 +266,35 @@ Not selected yet.
 | `BrnResource::HeapResourceAllocator::DoFree` | `0x82664FD8` | 122 | medium | yes / yes | `rw::IResourceAllocator::DoFree` | `0x820A09DC` / 3 |
 | `BrnResource::HeapResourceAllocator::DoFreeDisposable` | `0x82661E18` | 61 | medium | yes / yes | `rw::IResourceAllocator::DoFreeDisposable` | `0x820A09DC` / 4 |
 
-### World (3)
-
-| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
-|---|---|---:|---|---|---|---|
-| `BrnAI::AIDebugComponent::RenderWorld` | `0x82796A08` | 128 | medium | yes / no | `CgsDev::DebugComponent::RenderWorld` | `0x820CE988` / 1 |
-| `BrnWorld::BoostBurnout5::OnPropHit` | `0x822A6620` | 6 | low | yes / yes | `BrnWorld::BoostBurnout2::OnPropHit` | `0x820CEDC8` / 16 |
-| `BrnWorld::BoostBurnout2::IsBlueMode` | `0x827E2F38` | 2 | low | yes / yes | `BrnWorld::BoostBurnout5::IsBlueMode` | `0x820CEC30` / 17 |
-
-### CgsResource (3)
+### CgsResource (7)
 
 | method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
 |---|---|---:|---|---|---|---|
 | `CgsResource::VoiceHierarchyResourceType::GetSerialisedResourceDesc` | `0x826C5328` | 93 | medium | yes / yes |  | `0x820A11BC` / 1 |
+| `CgsResource::AttribSysSchemaResourceType::GetSerialisedResourceDescriptor` | `0x828EBA48` | 22 | medium | yes / yes | `Type::GetSerialisedResourceDescriptor` | `0x820A13D0` / 1 |
 | `CgsResource::PolygonSoupListResourceType::GetSerialisedResourceDes` | `0x82845B68` | 20 | medium | yes / yes |  | `0x820A1AE0` / 1 |
+| `CgsResource::HudMessageListResourceType::GetSerialisedResourceDescriptor` | `0x82846698` | 18 | medium | yes / yes | `CgsResource::Type::GetSerialisedResourceDescriptor` | `0x820A0F00` / 1 |
+| `CgsResource::RwColourCubeResourceType::FixDown` | `0x8267DF70` | 4 | medium | yes / yes | `CgsResource::Type::FixDown` | `0x820A1460` / 3 |
+| `CgsResource::RwColourCubeResourceType::FixUp` | `0x8267DF60` | 4 | medium | yes / yes | `CgsResource::Type::FixUp` | `0x820A1460` / 4 |
 | `CgsResource::TextFileResourceType::GetDebugResourceCat` | `0x826658F0` | 2 | high | yes / yes | `Type::GetDebugResourceCategory` | `0x8200746C` / 7 |
+
+### World (4)
+
+| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
+|---|---|---:|---|---|---|---|
+| `BrnAI::AIDebugComponent::RenderWorld` | `0x82796A08` | 128 | medium | yes / no | `CgsDev::DebugComponent::RenderWorld` | `0x820CE988` / 1 |
+| `BrnWorld::BoostBurnout5::OnEndCrashPlay` | `0x822D5350` | 10 | low | yes / yes | `BrnWorld::BoostStrategy::OnEndCrashPlay` | `0x820CEDC8` / 14 |
+| `BrnWorld::BoostBurnout5::OnPropHit` | `0x822A6620` | 6 | low | yes / yes | `BrnWorld::BoostBurnout2::OnPropHit` | `0x820CEDC8` / 16 |
+| `BrnProgression::ProgressionDebugComponent::GetPath` | `0x82312480` | 4 | low | yes / yes | `CgsDev::DebugComponent::GetPath` | `0x820CDE4C` / 4 |
+
+### Physics (4)
+
+| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
+|---|---|---:|---|---|---|---|
+| `BrnPhysics::PhysicsModule::Release` | `0x8259C1C0` | 77 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::Release` | `0x820D12E8` / 2 |
+| `BrnPhysics::PhysicsModule::Destruct` | `0x8259C310` | 24 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::Destruct` | `0x820D12E8` / 3 |
+| `BrnPhysics::Deformation::DeformationDebugComponent::OnRegister` | `0x825DB0D0` | 4 | low | yes / yes | `CgsDev::DebugComponent::OnRegister` | `0x82095210` / 0 |
+| `BrnWorld::PropEntityDebugComponent::IsSimple` | `0x825DB0D0` | 4 | medium | yes / yes | `CgsDev::DebugComponent::IsSimple` | `0x820CDD18` / 4 |
 
 ### BrnWorld (6)
 
@@ -202,13 +314,6 @@ Not selected yet.
 | `BrnRendererModule::Release` | `0x823FBCE0` | 60 | high | yes / yes | `CgsModule::ModuleSingleBuffered::Release` | `0x820CFEB0` / 2 |
 | `BrnRendererModule::Destruct` | `0x82408A58` | 42 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::Destruct` | `0x820CFEB0` / 3 |
 
-### Physics (2)
-
-| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
-|---|---|---:|---|---|---|---|
-| `BrnPhysics::PhysicsModule::Release` | `0x8259C1C0` | 77 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::Release` | `0x820D12E8` / 2 |
-| `BrnPhysics::PhysicsModule::Destruct` | `0x8259C310` | 24 | medium | yes / yes | `CgsModule::ModuleSingleBuffered::Destruct` | `0x820D12E8` / 3 |
-
 ### C: (2)
 
 | method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
@@ -216,11 +321,12 @@ Not selected yet.
 | `CgsGraphics::Im2d::SetProgram` | `0x827F1820` | 32 | high | yes / yes | `CgsGraphics::ImRenderer::SetProgram` | `0x820CF694` / 0 |
 | `CgsGraphics::Im3d::SetProgram` | `0x827F18A0` | 32 | high | yes / yes | `CgsGraphics::ImRenderer::SetProgram` | `0x820CF69C` / 0 |
 
-### BrnParticle (1)
+### BrnParticle (2)
 
 | method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
 |---|---|---:|---|---|---|---|
 | `BrnParticle::ParticleDescriptionResourceType::GetSerialisedResourc` | `0x8267C288` | 50 | high | yes / yes | `CgsResource::Type::GetSerialisedResourceDescriptor` | `0x820A16D4` / 1 |
+| `BrnParticle::ParticleDescriptionResourceType::FixDown` | `0x8267DF70` | 4 | medium | yes / yes | `CgsResource::Type::FixDown` | `0x820A16D4` / 3 |
 
 ### Effects (2)
 
@@ -235,26 +341,55 @@ Not selected yet.
 |---|---|---:|---|---|---|---|
 | `BrnReplays::ReplayModule::Release` | `0x8264B400` | 41 | high | yes / yes | `CgsModule::ModuleSingleBuffered::Release` | `0x820CFEF0` / 2 |
 
-### BrnSound (4)
-
-| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
-|---|---|---:|---|---|---|---|
-| `BrnSound::World::StaticSoundMapResourceType::GetSerialisedResource` | `0x8267AFC0` | 24 | medium | yes / yes |  | `0x820A19B8` / 1 |
-| `BrnSound::Logic::Explosion::ExplosionEffect::ResourcesAreReady` | `0x826D5510` | 2 | medium | yes / no | `BrnSound::Logic::BrnEffectObject::ResourcesAreReady` | `0x820B45E4` / 0 |
-| `BrnSound::Logic::Streaming::StreamingEffect::ResourcesAreReady` | `0x826C9DE0` | 2 | medium | yes / yes | `BrnSound::Logic::BrnEffectObject::ResourcesAreReady` | `0x820B386C` / 0 |
-| `BrnSound::Vehicles::Environment::CarStereoEffect::ResourcesAreReady` | `0x826D18E8` | 2 | medium | yes / yes | `BrnSound::Logic::BrnEffectObject::ResourcesAreReady` | `0x820B3F98` / 0 |
-
-### BrnProgression (1)
+### BrnProgression (2)
 
 | method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
 |---|---|---:|---|---|---|---|
 | `BrnProgression::ProfileUpgradeResourceType::GetSerialisedResourceD` | `0x8267D870` | 22 | medium | yes / no |  | `0x820A1B78` / 1 |
+| `BrnProgression::ProgressionResourceType::GetSerialisedResourceDescriptor` | `0x8267B110` | 18 | medium | yes / yes | `CgsResource::Type::GetSerialisedResourceDescriptor` | `0x820A1868` / 1 |
 
-### Gui (1)
+### BrnSound (2)
+
+| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
+|---|---|---:|---|---|---|---|
+| `BrnSound::World::StaticSoundMapResourceType::GetSerialisedResource` | `0x8267AFC0` | 24 | medium | yes / yes |  | `0x820A19B8` / 1 |
+| `BrnSound::Vehicles::Wheels::AIWheelControl::GetController` | `0x82696850` | 6 | medium | yes / yes | `BrnSound::Vehicles::Engines::ShiftControl::IShiftingActivator::GetController` | `0x820B5CDC` / 1 |
+
+### Gui (5)
 
 | method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
 |---|---|---:|---|---|---|---|
 | `BrnGui::CrashNavMapIcon::SetIconText` | `0x82448310` | 12 | high | yes / yes | `BrnGui::MapIconBrnBase::SetIconText` | `0x820CEB40` / 5 |
+| `BrnGui::BootLoading::GetResourcesToLoad` | `0x825011B0` | 4 | medium | yes / yes | `CgsGui::State::GetResourcesToLoad` | `0x82075370` / 8 |
+| `BrnGui::CrashNavMapIcon::GetPosition` | `0x8280FFC0` | 4 | medium | yes / yes | `BrnGui::MapIconBrnBase::GetPosition` | `0x820CEB40` / 6 |
+| `BrnGui::CrashNavProfile::GetResourcesToLoad` | `0x825011B0` | 4 | medium | yes / yes | `BrnGui::ProfileTaskResultHandler::GetResourcesToLoad` | `0x820741C4` / 8 |
+| `BrnGui::PausedHudState::GetResourcesToLoad` | `0x825011B0` | 4 | medium | yes / yes | `CgsGui::State::GetResourcesToLoad` | `0x820753DC` / 8 |
+
+### BrnStreetData (1)
+
+| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
+|---|---|---:|---|---|---|---|
+| `BrnStreetData::StreetDataResourceType::GetSerialisedResourceDescriptor` | `0x8267B110` | 18 | medium | yes / yes | `CgsResource::Type::GetSerialisedResourceDescriptor` | `0x820A19E8` / 1 |
+
+### BrnTrigger (1)
+
+| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
+|---|---|---:|---|---|---|---|
+| `BrnTrigger::TriggerResourceType::GetSerialisedResourceDescriptor` | `0x8267B110` | 18 | medium | yes / yes | `CgsResource::Type::GetSerialisedResourceDescriptor` | `0x820A14F0` / 1 |
+
+### .. (3)
+
+| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
+|---|---|---:|---|---|---|---|
+| `BrnResource::WheelListResourceType::FixDown` | `0x8267DF10` | 6 | medium | yes / yes | `CgsResource::Type::FixDown` | `0x820A1610` / 3 |
+| `BrnParticle::BrnVFXMeshCollectionResourceType::GetImportPointer` | `0x826759A8` | 4 | medium | yes / yes | `CgsResource::Type::GetImportPointer` | `0x820A173C` / 8 |
+| `BrnParticle::TextureNameMapResourceType::GetImportPointer` | `0x826759A8` | 4 | medium | yes / yes | `CgsResource::Type::GetImportPointer` | `0x820A1708` / 8 |
+
+### Director (1)
+
+| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
+|---|---|---:|---|---|---|---|
+| `BrnDirector::Camera::BehaviourRotateAboutVehicle::Prepare` | `0x821FB3F8` | 6 | medium | yes / yes | `BrnDirector::Camera::Behaviour::Prepare` | `0x8200A640` / 1 |
 
 ### BrnGameState (1)
 
@@ -269,15 +404,15 @@ Not selected yet.
 | `BrnNetwork::EventScoreUploadData::GetDataSize` | `0x82584D38` | 2 | low | no / no |  | `0x8207F2F8` / 3 |
 
 
-## Console-only code (270 rows)
+## Console-only code (248 rows)
 
 XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path. A miss here is usually a platform decision rather than a defect: read it as a list of decisions to confirm. A subset of `rw::` sits here because its name matches, not because it was reviewed.
 
 | subsystem | rows | insns |
 |---|---:|---:|
-| XAUDIO | 128 | 5192 |
+| XAUDIO | 127 | 5190 |
 | CgsFileSystem | 8 | 1443 |
-| XGRAPHICS | 22 | 1260 |
+| XGRAPHICS | 21 | 1258 |
 | D3D | 11 | 1132 |
 | RealmcIface | 21 | 1026 |
 | rw | 14 | 579 |
@@ -285,10 +420,8 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | MassiveAdClient3 | 13 | 314 |
 | XCAM | 28 | 289 |
 | Snd | 3 | 127 |
-| GameClasses | 12 | 24 |
-| World | 8 | 16 |
 
-### XAUDIO (128)
+### XAUDIO (127)
 
 | method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
 |---|---|---:|---|---|---|---|
@@ -333,7 +466,7 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | `XAUDIO::CSourceStream::FlushPackets` | `0x82967670` | 41 | high | yes / no |  | `0x82109120` / 4 |
 | `XAUDIO::CSourceStream::SetFormat` | `0x82967AE8` | 39 | high | yes / no |  | `0x82109120` / 14 |
 
-...and 88 smaller rows, in the JSON.
+...and 87 smaller rows, in the JSON.
 
 ### CgsFileSystem (8)
 
@@ -348,7 +481,7 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | `CgsFileSystem::PhysicalX360Device::Seek` | `0x828DEB98` | 37 | low | no / no |  | `0x820CEEE0` / 5 |
 | `CgsFileSystem::PhysicalX360Device::Init` | `0x828DE998` | 21 | low | no / no |  | `0x820CEEE0` / 0 |
 
-### XGRAPHICS (22)
+### XGRAPHICS (21)
 
 | method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
 |---|---|---:|---|---|---|---|
@@ -373,7 +506,6 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | `XGRAPHICS::IRKill2::InstType` | `0x82C2BC40` | 4 | high | no / no |  | `0x821B28C8` / 23 |
 | `XGRAPHICS::IRKill::InstType` | `0x82C2BB68` | 4 | high | no / no |  | `0x821B2858` / 23 |
 | `XGRAPHICS::IRLoopStart::InstType` | `0x82C2B660` | 4 | high | no / no |  | `0x821B24B8` / 23 |
-| `XGRAPHICS::IRAlu::OperationInputs` | `0x826D7F68` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821AF200` / 1 |
 
 ### D3D (11)
 
@@ -502,38 +634,8 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | `Snd::CEALayer3::Open` | `0x82B76520` | 47 | medium | no / no |  | `0x821565D8` / 2 |
 | `Snd::CEALayer3::Decode` | `0x82B7EB98` | 30 | high | no / no |  | `0x821565D8` / 6 |
 
-### GameClasses (12)
 
-| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
-|---|---|---:|---|---|---|---|
-| `XGRAPHICS::IRAllocColor::OperationOutputs` | `0x82C296C8` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationOutputs` | `0x821B2708` / 2 |
-| `XGRAPHICS::IRAllocInterp::OperationOutputs` | `0x82C296C8` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationOutputs` | `0x821B25A0` / 2 |
-| `XGRAPHICS::IRAllocMem::OperationOutputs` | `0x82C296C8` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationOutputs` | `0x821B2690` / 2 |
-| `XGRAPHICS::IRAllocPos::OperationOutputs` | `0x82C296C8` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationOutputs` | `0x821B2618` / 2 |
-| `XGRAPHICS::IRAlu::OperationOutputs` | `0x82C296C8` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationOutputs` | `0x821B2200` / 2 |
-| `XGRAPHICS::IRExport::OperationOutputs` | `0x82C296C8` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationOutputs` | `0x821B2270` / 2 |
-| `XGRAPHICS::IRLoopIndex::OperationInputs` | `0x82C296C8` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2528` / 1 |
-| `XGRAPHICS::IRLoopIndex::OperationOutputs` | `0x82C296C8` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationOutputs` | `0x821B2528` / 2 |
-| `XGRAPHICS::IRMov::OperationInputs` | `0x82C296C8` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2198` / 1 |
-| `XGRAPHICS::IRProjection::OperationInputs` | `0x82C296C8` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2440` / 1 |
-| `XGRAPHICS::IRProjection::OperationOutputs` | `0x82C296C8` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationOutputs` | `0x821B2440` / 2 |
-| `XGRAPHICS::IRTextureFetch::OperationInputs` | `0x82C296C8` | 2 | low | no / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2780` / 1 |
-
-### World (8)
-
-| method | addr | insns | conf | class in tree / mounted | falls back on | table / slot |
-|---|---|---:|---|---|---|---|
-| `XGRAPHICS::IRAllocColor::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2708` / 1 |
-| `XGRAPHICS::IRAllocInterp::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B25A0` / 1 |
-| `XGRAPHICS::IRAllocMem::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2690` / 1 |
-| `XGRAPHICS::IRAllocPos::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2618` / 1 |
-| `XGRAPHICS::IRCmp1S::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2940` / 1 |
-| `XGRAPHICS::IRLoadConst::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B22D8` / 1 |
-| `XGRAPHICS::IRLoadInterp::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B23C8` / 1 |
-| `XGRAPHICS::IRLoadTemp::OperationInputs` | `0x827E2F38` | 2 | medium | yes / no | `XGRAPHICS::IRInst::OperationInputs` | `0x821B2350` / 1 |
-
-
-## Vendor / SDK (33 rows)
+## Vendor / SDK (34 rows)
 
 `rw::`, `EA::`, `Apt*`, anything under `SDKs/`. Largest 40; the rest are in the JSON. Vendor code is often supplied whole by an original source or a host implementation (`tools/work/check_vendor_lib.py`), which this audit does not model.
 
@@ -566,6 +668,7 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 | `rw::audio::core::GainFader::EventEvent` | `0x82BA2C50` | 24 | low | yes / no |  | `0x8217F3E4` / 1 |
 | `rw::audio::core::SndPlayer1::ReleaseEvent` | `0x82BA4178` | 23 | low | yes / no |  | `0x8217F334` / 4 |
 | `rw::audio::core::PacketPlayer::ReleaseEvent` | `0x82B98368` | 22 | low | no / no |  | `0x8217F324` / 0 |
+| `CgsResource::PFXHookBundleResourceType::GetSerialisedResourceDescriptor` | `0x82502C30` | 18 | medium | yes / yes | `CgsResource::Type::GetSerialisedResourceDescriptor` | `0x820A1834` / 1 |
 | `CgsResource::AptDataHeaderType::GetSerialisedResourceDescriptor` | `0x82502C30` | 18 | medium | yes / yes | `CgsResource::Type::GetSerialisedResourceDescriptor` | `0x820A0EA0` / 1 |
 | `rw::audio::core::TimeStretch::ReleaseEvent` | `0x82B9C548` | 18 | medium | no / no |  | `0x8217F564` / 0 |
 | `AptBoolean::DeleteThis` | `0x82AD4DD8` | 8 | low | yes / yes | `AptInteger::DeleteThis` | `0x82145594` / 8 |
@@ -575,6 +678,7 @@ XAudio, Snd9, WMV, XCam, MassiveAd and the like, selected by name or source path
 
 ## What this audit cannot see
 
+0. **`--control` cannot prove completeness.** It proves known cases come out, nothing about cases nobody has found. `BoostBurnout5::OnEndCrashPlay` slipped past the first design and only surfaced by reading a neighbouring row.
 1. **A body is not a behaviour.** A row without a definition may have been inlined by hand into a caller; a row with one may be wrong. This only asks whether `Class::method` exists.
 2. **Overloads collapse.** One defined overload hides a missing one. A definition whose signature differs from the base's virtual hides the base instead of overriding it, and is counted as present.
 3. **Table boundaries.** A table starts at a materialised address. An unmaterialised table directly after a labelled one reads as extra slots of the first, usually with foreign names, so it lands in the ICF classes rather than MISSING. It errs towards under-reporting.
