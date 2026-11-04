@@ -28,9 +28,13 @@ $liPresetType = if ($liMode -eq 13) { 13 } else { 10 }
 # screen waits forever in LOADING_COMPONENTS (see the run report), and StartGameMode waits on it.
 $lsLoadedScript = '85:out:281;100:out:281;115:out:281'
 
+# Road rage launches only with exactly two teams (StateManager::GameModeHasEnoughTeams), and nobody
+# picks one in an unattended lobby: the Guest posts GUI 265 (switch team) once it has the new mode.
+$lsGuestTeam = if ($liMode -eq 11) { '35:net:265;' } else { '' }
+
 $lPairRoles = [ordered]@{
   Host  = @{ Other = 'Guest'; Harness = "BRN_NET_HOST=1,BRN_NET_START_MODE=25:$liMode,BRN_NET_SCRIPT=10:gui:193:$liPresetType;40:net:$lsLaunchGui;50:net:$lsLaunchGui;60:net:$lsLaunchGui;$lsLoadedScript" }
-  Guest = @{ Other = 'Host';  Harness = "BRN_NET_JOIN=1,BRN_NET_SCRIPT=$lsLoadedScript" }
+  Guest = @{ Other = 'Host';  Harness = "BRN_NET_JOIN=1,BRN_NET_SCRIPT=$lsGuestTeam$lsLoadedScript" }
 }
 
 if ($Role -eq '') {
