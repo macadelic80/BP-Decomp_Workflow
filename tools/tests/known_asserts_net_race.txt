@@ -26,11 +26,14 @@
 
 # ---- net_lan_start_mode only: everything above is known_asserts.txt VERBATIM, plus ONE family. ----
 # 2026-11-05. "Invalid rival position for active race car" (AboveCarRenderer::UpdateCachedInfoForRival)
-# fires every frame of an online race's ONLINE_LOADING, while the sim is paused, and stops on the first
-# tick after the resume. The cars bind to the scoring system only in ModeManager::PostWorldUpdate, which
-# GameStateModule::PostWorldUpdate skips while paused (console 0x8238F468), so an unbound rival publishes
-# the ClearData position 8 (console WriteDataToOutput 0x8232AE98 does the same) while mabValid already
-# says it is in the race. The render loop (0x82462A38) and the grid spawn (0x823010A0) match too: this is
-# the console's own debug assert, not a port defect. The case checks separately that it never fires once
-# the race is IN_PROGRESS. Remove this line if the family ever stops firing during the load.
+# fires every frame of an online race's ONLINE_LOADING, while the sim is paused. Expected to be a debug
+# assert on the console too, proved on the GUI side only:
+#   - proved from the asm: GUI 238 is posted every frame during the pause (0x823EDD1C, unconditional;
+#     DoUpdate_GUI still runs), the game mode reaches the GUI cache before the pause (GUI 93 from action
+#     23, 0x8250E7E4), an unbound slot publishes ClearData's position 8 (0x8238F468, 0x8232AE98), and the
+#     position test and render loop match (0x82454B50, 0x82462A38).
+#   - NOT proved, world side: mbIsPlayerCarActive and maCarsInTheRace during the pause on the console.
+# It IS visible on screen during "STANDBY TO RACE". Listed so the case can run, not because it is fine:
+# the separate check fails if it fires once the mode is IN_PROGRESS. Remove this line if the family
+# ever stops firing during the load.
 ^Invalid rival position for active race car$
