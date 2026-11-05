@@ -41,6 +41,8 @@ if (-not $lPairRoles.Contains($Role)) { throw "net_lan_pause_sound: unknown -Rol
 $lR = $lPairRoles[$Role]
 $lsCapture = Join-Path $lsAudioDir "net_lan_pause_sound_$Role.wav"
 
+# BP_AUDIO_BUFFERS=<n>: the XAudio2 queue depth for this run (BRN_AUDIO_BUFFERS, diagnostic).
+$lsBuffers = if ($env:BP_AUDIO_BUFFERS) { ",BRN_AUDIO_BUFFERS=$($env:BP_AUDIO_BUFFERS)" } else { '' }
 $lRun = @{ MaxSeconds = 260; TitleStart = $true; SkipIntro = $true; AcceptGap = 1.0; FrameEvery = 300 }
 if ($lR.MenuScript) { $lRun.MenuScript = $lR.MenuScript }
 
@@ -50,7 +52,7 @@ if ($lR.MenuScript) { $lRun.MenuScript = $lR.MenuScript }
   Bug     = "none -- the $Role half of net_lan_pause_sound (run it through tools\tests\run_pair.ps1)"
   Frames  = $true
   Run     = $lRun
-  DiagEnv = "$($lR.Harness),BRN_NET_DELAY=20,BRN_SCREEN_DIAG=1,BRN_AEMS_DIAG=1,BRN_SOUNDLOGIC_DIAG=1,BRN_HUD_SOUND_DIAG=1,BRN_AUDIO_CAPTURE=$lsCapture"
+  DiagEnv = "$($lR.Harness),BRN_NET_DELAY=20,BRN_SCREEN_DIAG=1,BRN_AEMS_DIAG=1,BRN_SOUNDLOGIC_DIAG=1,BRN_HUD_SOUND_DIAG=1,BRN_AUDIO_CAPTURE=$lsCapture$lsBuffers"
   Setup   = (& $NetPair.Setup $Role)
   Checks  = @(
     @{ Kind = 'LogCount'; Name = 'no exceptions'; Pattern = '\[EXCEPTION\]'; Max = 0 }
