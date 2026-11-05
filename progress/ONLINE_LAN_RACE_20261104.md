@@ -31,7 +31,8 @@ Tous valides : `TITLESTART requested=True ready-observed=True`, aucun VOID.
 | `net_lan_see` | Vert | `20261105_002610` |
 | `baseline_boot_drive` | Vert | `20261105_002854` |
 
-Les runs sont sous `scratchugtestuns\` du worktree. Les modes 10 et 11 étaient verts avec le stand-in GUI 281 parce qu'ils s'arrêtaient au `mode-start`. Le mode 13 passe désormais ; l'envoi unique de GUI 56 a pu y contribuer, sans preuve isolée.
+Les runs sont sous `scratchugtest
+uns\` du worktree. Les modes 10 et 11 étaient verts avec le stand-in GUI 281 parce qu'ils s'arrêtaient au `mode-start`. Le mode 13 passe désormais ; l'envoi unique de GUI 56 a pu y contribuer, sans preuve isolée.
 
 ## Défaut restant 1 : `Invalid rival position`, mode 10
 
@@ -59,6 +60,12 @@ Les runs sont sous `scratchugtestuns\` du worktree. Les modes 10 et 11 étaien
 
 - `SCREEN apt components: 5 of 5 still unloaded` : sans objet. La ligne est émise une fois au boot pour `SaveLoadComponent`, juste avant que ses 5 composants se chargent (`AddNewAptComponent` puis `ONLOAD`). Rien à voir avec l'online.
 - Le correctif `findInst` ne fait régresser aucun des cases relancés.
+
+## Après fusion (2026-11-05)
+
+- **Fusion :** b5 `3639c4ac9`, parent `5fc974c9` dans `work/integration-20261104`. `build\game\Burnout_PC.exe` reconstruit. L'exe précédent est gardé dans `build\exe_avant_fusion_night2_20261105`.
+- **Cadre POSITION vide en course online :** `EventInfoComponent::UpdateOnlineRace` (`0x824296B0`) n'était qu'un report qui écrivait dans le log. Reconstruit en b5 `e8dee9374`. Le run `20261105_005533` affiche « POSITION 2 / 2 » côté hôte, « 1 / 2 » côté invité, avec la distance.
+- **Paires dans le checkout principal :** utiliser `-SlotA 3 -SlotB 4`. `build\game_slots\config.ini` active le serveur en ligne : l'hôte passe alors par le relais, et l'invité, resté en LAN, ne le trouve jamais.
 
 ## Non fait
 
