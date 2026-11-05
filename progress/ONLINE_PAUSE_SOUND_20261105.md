@@ -1,5 +1,19 @@
 # Son haché à l'ouverture du menu de pause en course online — 2026-11-05
 
+## Mise à jour : c'est le moteur au ralenti (2026-11-05, 03 h 15)
+
+**Conclusion révisée :** le battement de 40 ms est le régime du moteur de la voiture du joueur. Le run `20261105_031200` (`BP_PAUSE_REVS=1` : 6 s d'accélération juste avant la pause) le montre : la période de l'enveloppe suit le régime. Elle est de 20 à 30 ms pendant l'accélération, puis s'allonge (20, 30, 35 ms) quand la voiture ralentit, et se fixe à 40 ms au ralenti. Le nombre de secondes battantes tombe de 6 à 9 à 2.
+
+- **Pourquoi on l'entend surtout dans le menu :** en online, la simulation continue sous la pause (pas d'action 86, pas de bit `0x1` côté son). La caméra de pause (`BehaviourRoadRunner`, `[RoadRunner] lane seated`, `[flyby]`) tourne près de la voiture, qui tourne au ralenti, et le niveau moyen du mix ne baisse pas.
+- **Ce que la logique son voit pendant la pause** (témoin `[snd-frame]`, b5 `1848b23d8`, run `20261105_030611`) : un pas de simulation constant de 0,016667, une échelle de temps de 1, aucun état « temps d'impact » ou « ralenti », aucune bascule, aucune pause de simulation. Le bit `0x800` (stall du streaming) n'est levé que pendant environ 54 images, d'un bloc, à l'ouverture du menu. **Écarté :** une bascule pause/stall ou ralenti à chaque image.
+- **`GinsuPause`** (`BrnDualGinsuEffect.cpp:984`, `:1019`) est toujours envoyé à 0. Écarté : le moteur figé sur un grain.
+- **Encore ouvert :**
+  - est-ce que la console laisse elle aussi le moteur à ce niveau sous le menu en online ? Il faudrait l'asm de ce que l'écran de pause envoie au son, ou un enregistrement console ;
+  - est-ce que les remplissages trop lents du callback XAudio2 (sujet à part, voir plus bas) rendent ce ralenti plus « haché » que sur console.
+
+Rien ne justifie un correctif à ce stade : le moteur au ralenti est un son légitime.
+
+
 **Conclusion :** le battement est reproduit et mesuré. Il ne vient d'aucun commit son de la nuit, et ce n'est ni une coupure de la sortie ni un trou de silence dans le mix. Pendant le menu de pause, le mix est modulé en amplitude avec une période de 40 ms (environ 25 Hz). La même période existe, plus faible, hors de la pause. La cause n'est pas encore établie.
 
 À part, et sans lien démontré avec la pause : le callback XAudio2 met régulièrement plus de temps à produire un buffer que la marge disponible. Ça ne se voit pas dans la capture, mais ça doit s'entendre comme des clics, partout.

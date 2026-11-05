@@ -19,7 +19,10 @@ $lsRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $lsAudioDir = Join-Path $lsRoot 'scratch\audio'
 if (-not (Test-Path $lsAudioDir)) { New-Item -ItemType Directory -Force $lsAudioDir | Out-Null }
 
-$lsHostScript = 'timeout:300;wait:\[net\] mode-start mode=OnlineRace type=;wait:mode state -> E_GMS_IN_PROGRESS;sleep:5;mark:pause;tap:Start;sleep:8;mark:unpause;tap:Start;sleep:5;mark:end'
+# BP_PAUSE_REVS=1: hold the throttle for 6 s first, so the car is still moving (and its engine
+# winding down) under the menu -- an engine-borne flutter then changes period during the pause.
+$lsRevs = if ($env:BP_PAUSE_REVS -eq '1') { 'hold:Accelerate:6;' } else { 'sleep:5;' }
+$lsHostScript = 'timeout:300;wait:\[net\] mode-start mode=OnlineRace type=;wait:mode state -> E_GMS_IN_PROGRESS;' + $lsRevs + 'mark:pause;tap:Start;sleep:8;mark:unpause;tap:Start;sleep:5;mark:end'
 
 $lPairRoles = [ordered]@{
   Host  = @{ Other = 'Guest'; Harness = 'BRN_NET_HOST=1,BRN_NET_START_MODE=25:10,BRN_NET_SCRIPT=10:gui:193:10;40:net:54'; MenuScript = $lsHostScript }
@@ -47,7 +50,7 @@ if ($lR.MenuScript) { $lRun.MenuScript = $lR.MenuScript }
   Bug     = "none -- the $Role half of net_lan_pause_sound (run it through tools\tests\run_pair.ps1)"
   Frames  = $true
   Run     = $lRun
-  DiagEnv = "$($lR.Harness),BRN_NET_DELAY=20,BRN_SCREEN_DIAG=1,BRN_AEMS_DIAG=1,BRN_AUDIO_CAPTURE=$lsCapture"
+  DiagEnv = "$($lR.Harness),BRN_NET_DELAY=20,BRN_SCREEN_DIAG=1,BRN_AEMS_DIAG=1,BRN_SOUNDLOGIC_DIAG=1,BRN_AUDIO_CAPTURE=$lsCapture"
   Setup   = (& $NetPair.Setup $Role)
   Checks  = @(
     @{ Kind = 'LogCount'; Name = 'no exceptions'; Pattern = '\[EXCEPTION\]'; Max = 0 }
