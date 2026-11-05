@@ -1,5 +1,16 @@
 # Son haché à l'ouverture du menu de pause en course online — 2026-11-05
 
+## Résolu par le signal audio de pause du HUD (2026-11-05, 06 h 45)
+
+Le défaut ne venait pas du son, mais du HUD. Avant `PAUSE`, la console envoie `OutputGuiEvent<GuiAudioEvent>` {type 2, action 0, info -1} (`0x824807C0` pour `RaceMainHudState`, `0x82481178` pour `FBurnMainHudState`), et notre arbre ne le faisait pas. La session « Audit de décompilation » l'a ajouté : b5 `7c3f3189d`, sur `work/polish-20261105`.
+
+- **Côté son :** GUI 456 devient le message 5 (`SoundLogicModule::ProcessGuiEvents`), puis `HUDEffect::Notify` (`0x826F5F68`). Le type 2 joue un splice fixe de la banque de présentation : 1 à l'ouverture (action 0), 2 à la fermeture (action 1), sur l'entrée de mixer 3. Il réclame aussi l'entrée HUD du mixer (`SetMixerInputValue(0, 0x7FFF)`).
+- **Mesure, run `20261105_064351`** (`7c3f3189d` appliqué en cherry-pick sur cette branche, puis retiré pour ne pas dupliquer le commit) :
+  - `[hud-sound-msg] type=2 action=0 ... -> PLAY splice=1` à l'ouverture du menu, et `action=1 ... splice=2` à la fermeture ;
+  - **0 seconde battante pendant la pause**, contre 6 à 9 sans le signal ; une seule au démarrage (43 s) ;
+  - niveau moyen sous le menu d'environ -14,5 dB, contre environ -19,5 dB sans le signal : le son de pause recouvre le ralenti du moteur.
+- **Limites :** un seul run, sur une machine chargée (au moins 2 autres instances du jeu). Le moteur au ralenti reste présent sous le menu, mais il n'est plus au premier plan, comme sur console.
+
 ## Mise à jour : c'est le moteur au ralenti (2026-11-05, 03 h 15)
 
 **Conclusion révisée :** le battement de 40 ms est le régime du moteur de la voiture du joueur. Le run `20261105_031200` (`BP_PAUSE_REVS=1` : 6 s d'accélération juste avant la pause) le montre : la période de l'enveloppe suit le régime. Elle est de 20 à 30 ms pendant l'accélération, puis s'allonge (20, 30, 35 ms) quand la voiture ralentit, et se fixe à 40 ms au ralenti. Le nombre de secondes battantes tombe de 6 à 9 à 2.

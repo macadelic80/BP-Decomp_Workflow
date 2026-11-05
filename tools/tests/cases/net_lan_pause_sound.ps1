@@ -50,7 +50,7 @@ if ($lR.MenuScript) { $lRun.MenuScript = $lR.MenuScript }
   Bug     = "none -- the $Role half of net_lan_pause_sound (run it through tools\tests\run_pair.ps1)"
   Frames  = $true
   Run     = $lRun
-  DiagEnv = "$($lR.Harness),BRN_NET_DELAY=20,BRN_SCREEN_DIAG=1,BRN_AEMS_DIAG=1,BRN_SOUNDLOGIC_DIAG=1,BRN_AUDIO_CAPTURE=$lsCapture"
+  DiagEnv = "$($lR.Harness),BRN_NET_DELAY=20,BRN_SCREEN_DIAG=1,BRN_AEMS_DIAG=1,BRN_SOUNDLOGIC_DIAG=1,BRN_HUD_SOUND_DIAG=1,BRN_AUDIO_CAPTURE=$lsCapture"
   Setup   = (& $NetPair.Setup $Role)
   Checks  = @(
     @{ Kind = 'LogCount'; Name = 'no exceptions'; Pattern = '\[EXCEPTION\]'; Max = 0 }
