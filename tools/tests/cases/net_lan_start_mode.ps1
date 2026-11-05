@@ -65,6 +65,22 @@ $lCounts = {
   return @{ Pass = ([int]$Matches[1] -gt 0 -and [int]$Matches[2] -eq 2); Detail = $lLine.Trim() }
 }.GetNewClosure()
 
+# The load-time rival-position assert is the console's own (known_asserts_net_race.txt); once the mode is
+# IN_PROGRESS every rival has bound to the scoring system and it must never fire again.
+$lRacingPositions = {
+  param($ctx)
+  $liStart = -1
+  # The case's own mode, not the free-burn lobby that runs (and reaches IN_PROGRESS) before it.
+  $lsStartRx = '\[net\] mode-start mode=' + $lsModeName + ' type='
+  for ($i = 0; $i -lt $ctx.LogLines.Count; $i++) { if ($ctx.LogLines[$i] -match $lsStartRx) { $liStart = $i; break } }
+  if ($liStart -lt 0) { return @{ Pass = $false; Detail = "no [net] mode-start line for $lsModeName" } }
+  $liRacing = -1
+  for ($i = $liStart; $i -lt $ctx.LogLines.Count; $i++) { if ($ctx.LogLines[$i] -match 'mode state -> E_GMS_IN_PROGRESS') { $liRacing = $i; break } }
+  if ($liRacing -lt 0) { return @{ Pass = $false; Detail = 'the online mode never reached E_GMS_IN_PROGRESS' } }
+  $liAfter = @($ctx.LogLines[$liRacing..($ctx.LogLines.Count - 1)] | Where-Object { $_ -match '^\[ASSERT \d+\] Invalid rival position' }).Count
+  return @{ Pass = ($liAfter -eq 0); Detail = "$liAfter rival-position assert(s) after E_GMS_IN_PROGRESS" }
+}.GetNewClosure()
+
 @{
   Name    = "net_lan_start_mode_$Role"
   Area    = 'network'
@@ -74,7 +90,10 @@ $lCounts = {
   DiagEnv = "$($lR.Harness),BRN_NET_DELAY=20,BRN_SCREEN_DIAG=1,BRN_SATNAV_DIAG=1"
   Setup   = (& $NetPair.Setup $Role)
   Checks  = @(
-    @{ Kind = 'NewAsserts'; Name = 'no NEW assert families' }
+    # known_asserts_net_race.txt = the shared list plus the console's own load-time rival-position assert
+    # (reasoning in that file); the Script check below keeps it from hiding a real in-race failure.
+    @{ Kind = 'NewAsserts'; Name = 'no NEW assert families'; Known = (Join-Path $PSScriptRoot '..\known_asserts_net_race.txt') }
+    @{ Kind = 'Script';   Name = 'rival positions valid once racing'; Script = $lRacingPositions }
     @{ Kind = 'LogCount'; Name = 'no exceptions'; Pattern = '\[EXCEPTION\]'; Max = 0 }
     @{ Kind = 'Mark';     Name = 'reached DRIVING'; Phase = 'DRIVING' }
     @{ Kind = 'Script';   Name = "$lsModeName's Start filled the params"; Script = $lFilled }

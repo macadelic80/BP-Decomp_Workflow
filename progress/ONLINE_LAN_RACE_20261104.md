@@ -67,7 +67,12 @@ uns\` du worktree. Les modes 10 et 11 étaient verts avec le stand-in GUI 281 pa
 - **Cadre POSITION vide en course online :** `EventInfoComponent::UpdateOnlineRace` (`0x824296B0`) n'était qu'un report qui écrivait dans le log. Reconstruit en b5 `e8dee9374`. Le run `20261105_005533` affiche « POSITION 2 / 2 » côté hôte, « 1 / 2 » côté invité, avec la distance.
 - **Paires dans le checkout principal :** utiliser `-SlotA 3 -SlotB 4`. `build\game_slots\config.ini` active le serveur en ligne : l'hôte passe alors par le relais, et l'invité, resté en LAN, ne le trouve jamais.
 
+## Clôture (2026-11-05)
+
+- **Assert du mode 10 :** dernier maillon vérifié, `ScoringSystem::WriteDataToOutput` (`0x8232AE98`) publie aussi un `CarScoreData` passé par `ClearData()` (position 8) pour un slot non lié. C'est donc l'assert de debug de la console elle-même. Il est déclaré dans `tools/tests/known_asserts_net_race.txt` : la liste partagée, recopiée telle quelle, plus cette seule famille. Le case vérifie aussi qu'il n'y en a **aucun** après `E_GMS_IN_PROGRESS` du mode testé, ce qui garde aussi l'objectif « la course atteint `IN_PROGRESS` ».
+- **GUI 483 :** b5 `511e8995e`.
+- **Résultat final, exe fusionné :** `net_lan_start_mode` vert en modes 10 (`20261105_013116`), 11 (`004053`) et 13 (`004511`) ; `net_lan_pair` (`011854`), `net_lan_see` (`011610`) et `baseline_boot_drive` (`013021`) verts. Les runs des modes 11 et 13 précèdent `511e8995e` (envoi réseau inatteignable à deux joueurs) et ont été réévalués avec `-NoRun` sur le case final.
+
 ## Non fait
 
 - Aucune fusion dans `work/integration-20261104`.
-- L'assert `Invalid rival position` du mode 10 n'est pas traité (voir plus haut).
